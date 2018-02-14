@@ -1,0 +1,132 @@
+#include <iostream>
+#include <math.h>
+
+//optimized kernel for small matrix B
+__global__ void KroneckerKernelSmall(int N, int M, float* A, float* B, float* C){
+  //int row = blockIdx.y * blockDim.y + threadIdx.y; //i
+  //int col = blockIdx.x * blockDim.x + threadIdx.x; //j
+  int index = blockIdx.y * blockDim.y + threadIdx.y;
+  int stride = blockIdx.x * blockDim.x;
+  for (int i=index; i < M*N*M*N; i += stride){
+    //address calc
+    int col = i%(M*N);
+    int row = floorf(i);
+    int a_idx = floorf(row/N) * M + floorf(col/N);
+    int b_idx = (row%N) * N + (col%N);
+    C[row * N*M + col] = A[a_idx] * B[b_idx];
+  }
+}
+
+/*
+//optimized kernel for large A and B
+__global__ void KroneckerKernel(int N, int M, float* A, float* B, float* C){  
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+  //address calc
+  int a_idx = floorf(row/N) * M + floorf(col/N);
+  int b_idx = (row%N) * N + (col%N);
+  C[row * N*M + col] = A[a_idx] * B[b_idx];
+}
+*/
+
+//optimized code for small matrix B
+void KroneckerGPUSmall(int M, int N, float* A, float* B, float* C){
+  //launch kernel
+  int nthreads = M*N;
+  int nblocks = M*N;
+  KroneckerKernelSmall<<<nblocks, nthreads>>>(N,M,A,B,C);
+}
+
+/*
+//optimized code for large A and B
+void KroneckerGPU(int M, int N, float* A, float* B, float* C){
+  //launch kernel
+  int nthreads = 2*M*N; //nthreads = #rows of output
+  int nblocks = M*N; //nblocks = #columns of output
+  KroneckerKernel<<<nblocks, nthreads>>>(N,M,A,B,C);
+}*/
+
+//from reference.cpp
+void KroneckerCPU(int M, int N, float* A, float* B, float* C){
+
+  for (int rowA = 0; rowA < M; rowA++){
+
+    for (int colA = 0; colA < M; colA++){
+      float elemA = A[rowA * M + colA];
+
+      for (int rowB = 0; rowB < N; rowB++){
+        int rowC = rowA * N + rowB;
+
+        for (int colB = 0; colB < N; colB++){
+          int colC = colA * N + colB;
+          float elemB = B[rowB * N + colB];
+//          std::cout << "Processing C[" << rowC << "," << colC << "] with A[" << rowA << "," << colA << "] and B[" << rowB << "," << colB << "]" << std::endl;
+          C[rowC * (M * N) + colC] = elemA * elemB;
+        }
+      }
+    }
+  }
+}
+
+//main
+int main(){
+  int N,M;
+  float *A, *B, *C;
+
+  //set matrices dimentions (<16kB, N < 64):
+  M = 4;
+  N = 2;
+
+  cudaMallocManaged(&A, M*M*sizeof(float));
+  cudaMallocManaged(&B, N*N*sizeof(float));
+  cudaMallocManaged(&C, N*N*M*M*sizeof(float));
+  float* Acpu = (float*) malloc(sizeof(float) * M * M);
+  float* Bcpu = (float*) malloc(sizeof(float) * N * N);
+  float* Ccpu = (float*) malloc(sizeof(float) * M * N * M * N);
+
+  //fill arrays, from main @ reference.cpp 
+  for (int i=0; i < M*M; i++){
+    A[i] = i+1;
+    Acpu[i] = i+1;
+  }
+  for (int i=0; i < N*N; i++){
+    B[i] = i+1;
+    Bcpu[i] = i+1;
+  }
+
+  //compute answer
+//  std::cout << "GPU start" << std::endl;
+  KroneckerGPUSmall(M,N,A,B,C);
+  //KroneckerGPU(M,N,A,B,C);
+
+  //compute reference
+//  std::cout << "GPU end" << std::endl << "CPU start" << std::endl;
+  KroneckerCPU(M,N,Acpu,Bcpu,Ccpu);
+
+  //sync CUDA and CPU
+  cudaDeviceSynchronize();
+
+  //print mismatches
+//  std::cout << "CPU end" << std::endl << "finding mismatches" << std::endl;
+  int miss = 0;
+  for (int row=0; row<M*N; row++){
+    for (int columns=0; columns<N*M; columns++){
+      int i = row * N * M + columns;
+      if (fabs(C[i]-Ccpu[i]) > 0.01) {
+        std::cout << "Mismatch at row " << row << ", col " << columns << ": GPU " << C[i] << ", CPU " << Ccpu[i] << std::endl;
+        miss++;
+      }
+    }
+  }
+  std::cout << "Found " << miss << " mismatches" << std::endl;
+
+//  std::cout << "Search done" << std::endl << "Free pointers" << std::endl;
+  cudaFree(A);
+  cudaFree(B);
+  cudaFree(C);
+  free(Ccpu);
+  free(Acpu);
+  free(Bcpu);
+//  std::cout << "Exiting" << std::endl;
+  return 0;
+}
