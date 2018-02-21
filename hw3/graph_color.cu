@@ -42,7 +42,7 @@ __global__ void GraphKernel(bool* graph, int* color, int V) {
         //select color
         for (int color_i = 1; color_i < V; color_i++) {
             if (!near[color_i]) {
-                color_sh[i] = color_i;
+                color_sh[index] = color_i;
                 break;
             }
         }
@@ -75,9 +75,9 @@ void GraphColoringGPU(const char filename[], int** color){
     int* color_d;  //colors on device
 
     //read graph file
-    if (string(filename).find(".col") != std::string::npos)
+    if (std::string(filename).find(".col") != std::string::npos)
         ReadColFile(filename, &graph_h, &V);
-    else if (string(filename).find(".mm") != std::string::npos) 
+    else if (std::string(filename).find(".mm") != std::string::npos) 
         ReadMMFile(filename, &graph_h, &V);
     else
         //exit now, if cannot parse the file
@@ -85,7 +85,7 @@ void GraphColoringGPU(const char filename[], int** color){
 
     //allocate list of colors per vector
     //cudaMallocManaged(color, V * sizeof(int));
-    cudaMalloc(color_d, V * sizeof(int));
+    cudaMalloc((int**)*color_d, V * sizeof(int));
 
     //move graph to device memory
     cudaMalloc((bool**)&graph_d, V * V * sizeof(bool));
@@ -110,10 +110,12 @@ void GraphColoringGPU(const char filename[], int** color){
 
     //counter from example
     int num_colors = 0;
-    set<int> seen_colors;
+    bool seen_colors[V+1];
+    for (int i = 0; i < V; i++) seen_colors[i] = false;
+
     for (int i = 0; i < V; i++) {
        if (seen_colors.find(color[i]) == seen_colors.end()) {
-          seen_colors.insert(color[i]);
+          seen_colors[color[i]] = true;
           num_colors++;
        }  
     }
