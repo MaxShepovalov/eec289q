@@ -197,7 +197,7 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             //cannot put `else`, as if job[j] == -1, the array will be different at this point
             if (job[j] != -1) N++;
-/*debug*/ std::cout << "    job " << j << ": " << job[j] << "\n";
+/*debug*/ std::cout << "    job " << j << ": " << job[j] << " color: " << color[job[j]] << "\n";
         }
 
 /*debug*/ std::cout << "//check colors nearby\n";
@@ -209,7 +209,7 @@ void GraphColoringGPU(const char filename[], int** color){
         //sync CUDA and CPU
         cudaError synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
-            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            std::cout << "COLOR_NEARBY cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
 
@@ -219,7 +219,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "//sync CUDA and CPU\n";
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
-            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            std::cout << "FIND_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
         cudaFree(near_colors);
@@ -231,7 +231,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "//sync CUDA and CPU\n";
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
-            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            std::cout << "COLOR_NEARBY_CHECK cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
 
@@ -243,9 +243,10 @@ void GraphColoringGPU(const char filename[], int** color){
         //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
-            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            std::cout << "JOB_UPDATE cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
+        cudaFree(near_colors);
         
 /*debug*/ std::cout << "//swap job lists\n";
         //cudaFree(old_job);
