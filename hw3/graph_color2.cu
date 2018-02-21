@@ -54,7 +54,10 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
 
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
+/*debug*/ __syncthreads();
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d colorV %d colorNeib %d\n",threadIdx.x, job_index, index, near, graph[index * V + near], colors[index], colors[near]);
+/*debug*/ __syncthreads();
     //stage 1. scan neighbour
 
     //find color for neighbour
