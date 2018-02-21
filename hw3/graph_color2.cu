@@ -121,7 +121,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //allocate list of colors per vector
     cudaMallocManaged(color, V * sizeof(int));
     cudaError color_malloced = cudaDeviceSynchronize();
-        if (synced != cudaSuccess){
+        if (color_malloced != cudaSuccess){
             std::cout << "COLOR_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(color_malloced) << std::endl;
             exit(color_malloced);
         }
