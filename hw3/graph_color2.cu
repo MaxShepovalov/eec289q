@@ -56,7 +56,11 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
 /*debug*/ __syncthreads();
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d colorV %d colorNeib %d\n",threadIdx.x, job_index, index, near, graph[index * V + near], colors[index], colors[near]);
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d\n",threadIdx.x, job_index, index, near, graph[index * V + near]);
+/*debug*/ __syncthreads();
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index], colors[near]);
+/*debug*/ __syncthreads();
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorNeib %d\n",threadIdx.x, job_index, index, near, colors[near]);
 /*debug*/ __syncthreads();
     //stage 1. scan neighbour
 
