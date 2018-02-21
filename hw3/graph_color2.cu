@@ -171,6 +171,10 @@ void GraphColoringGPU(const char filename[], int** color){
     //job for GPU (indexes of vertexes to process)
     int* job;
     cudaMallocManaged(&job, V * sizeof(int));
+    //fill job
+    for (int i=0; i < V; i++){
+        job[i] = i;
+    }
     bool done = false;
     
     //start kernel
@@ -190,6 +194,7 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             //cannot put `else`, as if job[j] == -1, the array will be different at this point
             if (job[j] != -1) N++;
+/*debug*/ std::cout << "    job " << j << ": " << job[j] << "\n";
         }
 
 /*debug*/ std::cout << "//check colors nearby\n";
