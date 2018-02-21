@@ -9,21 +9,127 @@
 #include <cstring>
 #include <math.h>
 
-//file parcers from example
+//file parsers from example
 void ReadColFile(const char filename[], bool** graph, int* V);
 void ReadMMFile(const char filename[], bool** graph, int* V);
 
-__global__ void KroneckerKernelSmall(int M, int N, float* A, float* B, float* C);
+////////////////////////////////////////////////////////////////////////////////////
 
-void GraphColoringGPU(const char filename[], int** color);
+__global__ void GraphKernel(bool* graph, int* color, int V){
+    int index = blockIdx.x * blockDim.x + threadIdx.x; //thread ID
+//    int stride = blockDim.x * gridDim.x;               //
+    //each thread works with only one vertex
 
+    //shared memory for final colors
+    extern __shared__ int color_sh[];
+    color_sh[index] = 0;
+    __syncthreads();
+
+    //decide the color
+    for (int attempt = 0; attempt < V; attempt++){
+
+        //scan neighbours
+        set<int> near;
+        for (int i = 0; i < V; i++) {
+            if (graph[index * V + i] and i != index) {
+                near.insert(color_sh[i]);
+            }
+        }
+
+        //select color
+        for (int color_i = 1; color_i < V; color_i++)
+            if (near.find(color_i) == next.end())
+                color_sh[i] = color_i;
+                break;
+
+        //wait for others
+        __syncthreads();
+        
+        //check if there is a mistake
+        bool done = True;
+        for (int i = index + 1; i < V; i++) {
+            if (graph[index * V + i] and color_sh[i]==color_sh[index]) {
+                done = False;
+                break;
+            }
+        }
+        if (done) {
+            //exit loop
+            break;
+        }
+    }
+
+    //write out result
+    color[index] = color_sh[index];
+}
+
+void GraphColoringGPU(const char filename[], int** color){
+    int V;         //number of vertexes
+    bool* graph_h; //graph matrix on host
+    bool* graph_d; //graph matrix on device
+    int* color_d;  //colors on device
+
+    //read graph file
+    if (string(filename).find(".col") != std::string::npos)
+        ReadColFile(filename, &graph_h, &V);
+    else if (string(filename).find(".mm") != std::string::npos) 
+        ReadMMFile(filename, &graph_h, &V);
+    else
+        //exit now, if cannot parse the file
+        return;
+
+    //allocate list of colors per vector
+    //cudaMallocManaged(color, V * sizeof(int));
+    cudaMalloc(color_d, V * sizeof(int));
+
+    //move graph to device memory
+    cudaMalloc((bool**)&graph_d, V * V * sizeof(bool));
+    cudaMemcpy(graph_d, graph_h, V * V * sizeof(bool), cudaMemcpyHostToDevice);
+    
+    //start kernel
+    int nblocks = 1;
+    int nthreads = V;
+    GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color_d, V);
+
+    //sync CUDA and CPU
+    cudaError synced = cudaDeviceSynchronize();
+    if (synced != cudaSuccess){
+        std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+        exit(synced);
+    } else {
+        std::cout << "cuda sync OK" << std::endl;
+    }
+
+    //move colors to host
+    cudaMemcpy(*color, color_d, V * sizeof(int), cudaMemcpyDeviceToHost);
+
+    //counter from example
+    int num_colors = 0;
+    set<int> seen_colors;
+    for (int i = 0; i < V; i++) {
+       if (seen_colors.find(color[i]) == seen_colors.end()) {
+          seen_colors.insert(color[i]);
+          num_colors++;
+       }  
+    }
+
+    //print result
+    for (int i = 0; i < V; i++) {
+        std::out << i << " - color " << color[i] << std::endl;
+    }
+    std::cout << "Solution has " << num_colors << " colors" << std::endl;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char const **argv)
 {
     /* code */
-    std::cout << argc << " items " << std::endl;
-    for (int i = 0; i < argc; i++){
-        std::cout << i << ": '" << argv[i] << "'" << std::endl;
-    }
+    // std::cout << argc << " items " << std::endl;
+    // for (int i = 0; i < argc; i++){
+    //     std::cout << i << ": '" << argv[i] << "'" << std::endl;
+    // }
+    int* color;
+    GraphColoringGPU(argv[1], &color)
     return 0;
 }
 
