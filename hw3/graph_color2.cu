@@ -116,26 +116,40 @@ void GraphColoringGPU(const char filename[], int** color){
         ReadMMFile(filename, &graph_h, &V);
     else
         //exit now, if cannot parse the file
+        std::cout << "Cannot parse the file\n";
         return;
 
     //allocate list of colors per vector
-    cudaMallocManaged(color, V * sizeof(int));
-    cudaError color_malloced = cudaDeviceSynchronize();
-        if (color_malloced != cudaSuccess){
-            std::cout << "COLOR_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(color_malloced) << std::endl;
-            exit(color_malloced);
+    cudaError malloc_err = cudaMallocManaged(color, V * sizeof(int));
+        if (malloc_err != cudaSuccess){
+            std::cout << "COLOR_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+            exit(malloc_err);
+        } else {
+            std::cout << "COLOR_MALLOC OK";
         }
     for (int i=0; i < V; i++){
         color[i] = 0;
     }
 
     //move graph to device memory
-    cudaMalloc((bool**)&graph_d, V * V * sizeof(bool));
+    malloc_err = cudaMalloc(&graph_d, V * V * sizeof(bool));
+        if (malloc_err != cudaSuccess){
+            std::cout << "GRAPH_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+            exit(malloc_err);
+        } else {
+            std::cout << "GRAPH_MALLOC OK";
+        }
     cudaMemcpy(graph_d, graph_h, V * V * sizeof(bool), cudaMemcpyHostToDevice);
     
     //job for GPU (indexes of vertexes to process)
     int* job;
-    cudaMallocManaged(&job, V * sizeof(int));
+    malloc_err = cudaMallocManaged(&job, V * sizeof(int));
+        if (malloc_err != cudaSuccess){
+            std::cout << "JOB_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+            exit(malloc_err);
+        } else {
+            std::cout << "JOB_MALLOC OK";
+        }
     //fill job
     for (int i=0; i < V; i++){
         job[i] = i;
