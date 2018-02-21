@@ -72,7 +72,7 @@ void GraphColoringGPU(const char filename[], int** color){
     int V;         //number of vertexes
     bool* graph_h; //graph matrix on host
     bool* graph_d; //graph matrix on device
-    int* color_d;  //colors on device
+    //int* color_d;  //colors on device
 
     //read graph file
     if (std::string(filename).find(".col") != std::string::npos)
@@ -84,8 +84,8 @@ void GraphColoringGPU(const char filename[], int** color){
         return;
 
     //allocate list of colors per vector
-    //cudaMallocManaged(color, V * sizeof(int));
-    cudaMalloc((int**)&color_d, V * sizeof(int));
+    cudaMallocManaged((int*)*color, V * sizeof(int));
+    //cudaMalloc((int**)&color_d, V * sizeof(int));
 
     //move graph to device memory
     cudaMalloc((bool**)&graph_d, V * V * sizeof(bool));
@@ -94,7 +94,8 @@ void GraphColoringGPU(const char filename[], int** color){
     //start kernel
     int nblocks = 1;
     int nthreads = V;
-    GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color_d, V);
+    //GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color_d, V);
+    GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color, V);
 
     //sync CUDA and CPU
     cudaError synced = cudaDeviceSynchronize();
@@ -106,12 +107,14 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //move colors to host
-    cudaMemcpy(*color, color_d, V * sizeof(int), cudaMemcpyDeviceToHost);
+    //cudaMemcpy(*color, color_d, V * sizeof(int), cudaMemcpyDeviceToHost);
 
     //counter from example
     int num_colors = 0;
     bool seen_colors[V+1];
     for (int i = 0; i < V; i++) seen_colors[i] = false;
+
+    std::cout << "Vertex - color" << std::endl;
 
     for (int i = 0; i < V; i++) {
        if (!seen_colors[(*color)[i]]) {
