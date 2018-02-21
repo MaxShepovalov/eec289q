@@ -43,7 +43,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 
 
 //Kernel work with pairs of vertexes
-__global__ void KernelNeighbourColor(bool* graph, int* colors_p, bool* output, int V, int* job){
+__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
     //graph  - graph connections
     //colors - currently selected colors
     //V      - amount of vertexes
@@ -53,9 +53,9 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors_p, bool* output, i
     int job_index = floorf(threadIdx.x/V); //primary vertex selector from job list
     int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
-    int* colors = *colors_p; //dereference colors array
+    //int* colors = *colors_p; //dereference colors array
 
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done, color_p ptr %ld\n",threadIdx.x, job_index, index, near, (long int)colors_p);
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near, (long int)colors_p);
 /*debug*/ __syncthreads();
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d, color ptr %ld\n",threadIdx.x, job_index, index, near, graph[index * V + near], (long int)colors);
 /*debug*/ __syncthreads();
