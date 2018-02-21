@@ -163,6 +163,9 @@ void GraphColoringGPU(const char filename[], int** color){
 
     //allocate list of colors per vector
     cudaMallocManaged(color, V * sizeof(int));
+    for (int i=0; i < V; i++){
+        color[i] = 0;
+    }
 
     //move graph to device memory
     cudaMalloc((bool**)&graph_d, V * V * sizeof(bool));
