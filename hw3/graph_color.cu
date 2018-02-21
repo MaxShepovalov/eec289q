@@ -17,12 +17,12 @@ __global__ void KroneckerKernelSmall(int M, int N, float* A, float* B, float* C)
 
 void GraphColoringGPU(const char filename[], int** color);
 
-int main(int argc, char const **argv[])
+int main(int argc, char const **argv)
 {
     /* code */
     std::cout << argc << " items " << std::endl;
     for (int i = 0; i < argc; i++){
-        std::cout << i << ": '" << argv[argc] << "'" << std::endl;
+        std::cout << i << ": '" << argv[i] << "'" << std::endl;
     }
     return 0;
 }
