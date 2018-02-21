@@ -49,10 +49,12 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     //V      - amount of vertexes
     //job    - list of vertexes for processing
 
+
     int job_index = floorf(threadIdx.x/V); //primary vertex selector from job list
     int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
 
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d colorV %d colorNeib %d\n",threadIdx.x, job_index, index, near, graph[index * V + near], colors[index], color[near]);
     //stage 1. scan neighbour
 
     //find color for neighbour
