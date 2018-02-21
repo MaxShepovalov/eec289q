@@ -55,9 +55,9 @@ __global__ void KernelNeighbourColor(bool* graph, int** colors_p, bool* output, 
     int index = job[job_index];            //primary vertex index;
     int* colors = *colors_p; //dereference colors array
 
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done, color_p ptr %d\n",threadIdx.x, job_index, index, near, (int)colors_p);
 /*debug*/ __syncthreads();
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d\n",threadIdx.x, job_index, index, near, graph[index * V + near]);
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d, color ptr %d\n",threadIdx.x, job_index, index, near, graph[index * V + near], (int)colors);
 /*debug*/ __syncthreads();
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index]);
 /*debug*/ __syncthreads();
