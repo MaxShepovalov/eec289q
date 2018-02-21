@@ -43,9 +43,15 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 
 
 //Kernel work with pairs of vertexes
-__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V){
-    int index = floorf(threadIdx.x/V); // primary vertex index (row of graph)
-    int near  = threadIdx.x % V//neighbor vertex index         (col of graph)
+__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
+    //graph  - graph connections
+    //colors - currently selected colors
+    //V      - amount of vertexes
+    //job    - list of vertexes for processing
+
+    int job_index = floorf(threadIdx.x/V); //primary vertex selector from job list
+    int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
+    int index = job[job_index];            //primary vertex index;
 
     //stage 1. scan neighbour
 
@@ -62,17 +68,28 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 
     //stage 2. mark used colors
     if (color_near_r != 0){
-        output[index * V + color_near_r] = true;
+        output[job_index * V + color_near_r] = true;
     }
 }
 
-__global__ void KernelSearchColor(int* colors, int* nearcolors, int V){
-    int index = threadIdx.x; //vertex index
+__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int* job){
+    int job_index = threadIdx.x; //job index
+    int index = job[job_index];  //vertex index
     for (int clr = 0; clr < V; clr ++){
-        if (!nearcolors[index * V + clr]){
+        if (!nearcolors[job_index * V + clr]){
             colors[index] = clr;
             break;
         }
+    }
+}
+
+__global__ void KernelCheckColor(int* colors, bool* nearcolors, int V, int* job, int* new_job){
+    int job_index = threadIdx.x; //job index
+    int index = job[job_index];  //vertex index
+    if (nearcolors[colors[index]]){
+        new_job[index] = index;
+    } else {
+        new_job[index] = -1;
     }
 }
 
@@ -151,33 +168,93 @@ void GraphColoringGPU(const char filename[], int** color){
     cudaMalloc((bool**)&graph_d, V * V * sizeof(bool));
     cudaMemcpy(graph_d, graph_h, V * V * sizeof(bool), cudaMemcpyHostToDevice);
     
+    //job for GPU (indexes of vertexes to process)
+    int* job;
+    cudaMallocManaged(&job, V * sizeof(int));
+    bool done = False;
+    
     //start kernel
-    //int nblocks = 1;
-    //int nthreads = V;
-    //GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color_d, V);
-    //GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, *color, V);
-    for (int vi = 0; vi < V; vi++){
+
+    //repeat until find solition
+    while (!done){
+        //sort job list and count amount of job
+        int N = 0;
+        for (int j=0; j < V; j++){
+            if (job[j] == -1){
+                for(int jj=j; jj < V; jj++){
+                    if (job[jj]!=-1){
+                        job[jj-1] = job[jj];
+                        job[jj] = -1;
+                    }
+                }
+            }
+            //cannot put `else`, as if job[j] == -1, the array will be different at this point
+            if (job[j] != -1) N++;
+        }
+
+        //check colors nearby
+
         bool* near_colors;
-        cudaMallocManaged(&near_colors, V * V * sizeof(bool));
-        KernelNeighbourColor<<<1, V*V>>>(graph_d, *color, near_colors, V, vi);
-
-        //find colors
-
-        KernelSearchColor<<<1, V>>>(*color, near_colors, V);
-        cudaFree(near_colors);
-        
+        cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+        near_colors[0] = true;
+        KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
         //sync CUDA and CPU
         cudaError synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
-        // else {
-        //   std::cout << "cuda sync OK" << std::endl;
-        // }
-    }
 
-    //counter
+        //find colors
+
+        KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
+        //sync CUDA and CPU
+        cudaError synced = cudaDeviceSynchronize();
+        if (synced != cudaSuccess){
+            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            exit(synced);
+        }
+        cudaFree(near_colors);
+        
+        //check if need to work again
+        bool* near_colors;
+        cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+        near_colors[0] = true;
+        KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
+        //sync CUDA and CPU
+        cudaError synced = cudaDeviceSynchronize();
+        if (synced != cudaSuccess){
+            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            exit(synced);
+        }
+
+        //update job
+        int* new_job;
+        cudaMallocManaged(&new_job, V * N sizeof(bool));
+        int* old_job = job;
+        KernelCheckColor<<<1 ,N>>>(*colors, near_colors, V, job, new_job);
+        //sync CUDA and CPU
+        cudaError synced = cudaDeviceSynchronize();
+        if (synced != cudaSuccess){
+            std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+            exit(synced);
+        }
+        
+        cudaFree(old_job);
+        job = new_job;
+
+        //check if done
+        done = true;
+        for(int i=0; i < V; i++){
+            if (job[i] == -1){
+                done = false;
+                break;
+            }
+        }
+    }
+    cudaFree(job);
+
+    //color counter
     int num_colors = 0;
     bool seen_colors[V+1];
     for (int i = 0; i < V; i++) seen_colors[i] = false;
