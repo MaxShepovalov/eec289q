@@ -29,9 +29,9 @@ __global__ void GraphKernel(bool* graph, int* color, int V) {
     for (int attempt = 0; attempt < V; attempt++) {
 
         //scan colors of neighbours
-        bool near[V+1];
+        bool* near = new bool[V+1];
         for (int i = 0; i < V; i++) near[i] = false;
-        
+
         for (int i = 0; i < V; i++) {
             if (graph[index * V + i] and i != index) {
                 //near.insert(color_sh[i]);
