@@ -230,8 +230,9 @@ void GraphColoringGPU(const char filename[], int** color){
         //update job
         int* new_job;
         cudaMallocManaged(&new_job, V * N sizeof(bool));
-        int* old_job = job;
-        KernelCheckColor<<<1 ,N>>>(*colors, near_colors, V, job, new_job);
+        int* old_job;
+        old_job = job;
+        KernelCheckColor<<<1 ,N>>>(*color, near_colors, V, job, new_job);
         //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
