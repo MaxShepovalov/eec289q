@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
 void ReadMMFile(const char filename[], bool** graph, int* V) 
 {
    std::string line;
-   ifstream infile(filename);
+   std::ifstream infile(filename);
    if (infile.fail()) {
       printf("Failed to open %s\n", filename);
       return;
@@ -41,13 +41,13 @@ void ReadMMFile(const char filename[], bool** graph, int* V)
 
    // Reading comments
    while (getline(infile, line)) {          
-      istd::stringstream iss(line);
+      std::istringstream iss(line);
       if (line.find("%") == std::string::npos)
          break;
    }
 
    // Reading metadata
-   istd::stringstream iss(line);
+   std::istringstream iss(line);
    int num_rows, num_cols, num_edges;
    iss >> num_rows >> num_cols >> num_edges;
 
@@ -57,7 +57,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V)
 
    // Reading nodes
    while (getline(infile, line)) {          
-      istd::stringstream iss(line);
+      std::istringstream iss(line);
       int node1, node2, weight;
       iss >> node1 >> node2 >> weight;
       
@@ -74,7 +74,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V)
 void ReadColFile(const char filename[], bool** graph, int* V) 
 {
    std::string line;
-   ifstream infile(filename);
+   std::ifstream infile(filename);
    if (infile.fail()) {
       printf("Failed to open %s\n", filename);
       return;
@@ -83,7 +83,7 @@ void ReadColFile(const char filename[], bool** graph, int* V)
    int num_rows, num_edges;
 
    while (getline(infile, line)) {
-      istd::stringstream iss(line);
+      std::istringstream iss(line);
       std::string s;
       int node1, node2;
       iss >> s;
