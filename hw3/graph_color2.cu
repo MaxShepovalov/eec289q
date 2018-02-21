@@ -87,9 +87,9 @@ __global__ void KernelCheckColor(int* colors, bool* nearcolors, int V, int* job,
     int job_index = threadIdx.x; //job index
     int index = job[job_index];  //vertex index
     if (nearcolors[colors[index]]){
-        new_job[index] = index;
+        new_job[job_index] = index;
     } else {
-        new_job[index] = -1;
+        new_job[job_index] = -1;
     }
 }
 
@@ -171,7 +171,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //job for GPU (indexes of vertexes to process)
     int* job;
     cudaMallocManaged(&job, V * sizeof(int));
-    bool done = False;
+    bool done = false;
     
     //start kernel
 
@@ -209,7 +209,7 @@ void GraphColoringGPU(const char filename[], int** color){
 
         KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
         //sync CUDA and CPU
-        cudaError synced = cudaDeviceSynchronize();
+        synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
@@ -217,12 +217,11 @@ void GraphColoringGPU(const char filename[], int** color){
         cudaFree(near_colors);
         
         //check if need to work again
-        bool* near_colors;
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         near_colors[0] = true;
         KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
         //sync CUDA and CPU
-        cudaError synced = cudaDeviceSynchronize();
+        synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
@@ -234,12 +233,13 @@ void GraphColoringGPU(const char filename[], int** color){
         int* old_job = job;
         KernelCheckColor<<<1 ,N>>>(*colors, near_colors, V, job, new_job);
         //sync CUDA and CPU
-        cudaError synced = cudaDeviceSynchronize();
+        synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
         
+        //swap job lists
         cudaFree(old_job);
         job = new_job;
 
