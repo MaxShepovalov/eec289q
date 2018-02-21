@@ -98,59 +98,6 @@ __global__ void KernelCheckColor(int* colors, bool* nearcolors, int V, int* job,
     }
 }
 
-// __global__ void GraphKernel(bool* graph, int* color, int V) {
-//     int index = blockIdx.x * blockDim.x + threadIdx.x; //thread ID
-// //    int stride = blockDim.x * gridDim.x;               //
-//     //each thread works with only one vertex
-
-//     //shared memory for final colors
-//     extern __shared__ int color_sh[];
-//     color_sh[index] = 0;
-//     __syncthreads();
-
-//     //decide the color
-//     for (int attempt = 0; attempt < V; attempt++) {
-
-//         //scan colors of neighbours
-//         bool* near = new bool[V+1];
-//         for (int i = 0; i < V; i++) near[i] = false;
-
-//         for (int i = 0; i < V; i++) {
-//             if (graph[index * V + i] and i != index) {
-//                 //near.insert(color_sh[i]);
-//                 near[color_sh[i]] = true;
-//             }
-//         }
-
-//         //select color
-//         for (int color_i = 1; color_i < V; color_i++) {
-//             if (!near[color_i]) {
-//                 color_sh[index] = color_i;
-//                 break;
-//             }
-//         }
-
-//         //wait for others
-//         __syncthreads();
-        
-//         //check if there is a mistake
-//         bool done = true;
-//         for (int i = index + 1; i < V; i++) {
-//             if (graph[index * V + i] and color_sh[i]==color_sh[index]) {
-//                 done = false;
-//                 break;
-//             }
-//         }
-//         if (done) {
-//             //exit loop
-//             break;
-//         }
-//     }
-//
-//     //write out result
-//     color[index] = color_sh[index];
-// }
-
 void GraphColoringGPU(const char filename[], int** color){
     int V;         //number of vertexes
     bool* graph_h; //graph matrix on host
@@ -205,7 +152,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "    job " << j << ": " << job[j] << " color: " << color[job[j]] << "\n";
         }
 
-/*debug*/ std::cout << "//check colors nearby\n";
+/*debug*/ std::cout << "//check colors nearby " << N << " vertexes\n";
 
         bool* near_colors;
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
@@ -383,3 +330,57 @@ void ReadColFile(const char filename[], bool** graph, int* V)
    }
    infile.close();
 }
+
+
+// __global__ void GraphKernel(bool* graph, int* color, int V) {
+//     int index = blockIdx.x * blockDim.x + threadIdx.x; //thread ID
+// //    int stride = blockDim.x * gridDim.x;               //
+//     //each thread works with only one vertex
+
+//     //shared memory for final colors
+//     extern __shared__ int color_sh[];
+//     color_sh[index] = 0;
+//     __syncthreads();
+
+//     //decide the color
+//     for (int attempt = 0; attempt < V; attempt++) {
+
+//         //scan colors of neighbours
+//         bool* near = new bool[V+1];
+//         for (int i = 0; i < V; i++) near[i] = false;
+
+//         for (int i = 0; i < V; i++) {
+//             if (graph[index * V + i] and i != index) {
+//                 //near.insert(color_sh[i]);
+//                 near[color_sh[i]] = true;
+//             }
+//         }
+
+//         //select color
+//         for (int color_i = 1; color_i < V; color_i++) {
+//             if (!near[color_i]) {
+//                 color_sh[index] = color_i;
+//                 break;
+//             }
+//         }
+
+//         //wait for others
+//         __syncthreads();
+        
+//         //check if there is a mistake
+//         bool done = true;
+//         for (int i = index + 1; i < V; i++) {
+//             if (graph[index * V + i] and color_sh[i]==color_sh[index]) {
+//                 done = false;
+//                 break;
+//             }
+//         }
+//         if (done) {
+//             //exit loop
+//             break;
+//         }
+//     }
+//
+//     //write out result
+//     color[index] = color_sh[index];
+// }
