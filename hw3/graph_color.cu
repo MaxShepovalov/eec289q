@@ -114,7 +114,7 @@ void GraphColoringGPU(const char filename[], int** color){
     for (int i = 0; i < V; i++) seen_colors[i] = false;
 
     for (int i = 0; i < V; i++) {
-       if (seen_colors.find(color[i]) == seen_colors.end()) {
+       if (!seen_colors[color[i]]) {
           seen_colors[color[i]] = true;
           num_colors++;
        }  
