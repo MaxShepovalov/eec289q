@@ -43,7 +43,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 
 
 //Kernel work with pairs of vertexes
-__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
+__global__ void KernelNeighbourColor(bool* graph, int** colors_p, bool* output, int V, int* job){
     //graph  - graph connections
     //colors - currently selected colors
     //V      - amount of vertexes
@@ -53,12 +53,13 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     int job_index = floorf(threadIdx.x/V); //primary vertex selector from job list
     int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
+    int* colors = *colors_p; //dereference colors array
 
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
 /*debug*/ __syncthreads();
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d\n",threadIdx.x, job_index, index, near, graph[index * V + near]);
 /*debug*/ __syncthreads();
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index], colors[near]);
+/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index]);
 /*debug*/ __syncthreads();
 /*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorNeib %d\n",threadIdx.x, job_index, index, near, colors[near]);
 /*debug*/ __syncthreads();
@@ -161,7 +162,7 @@ void GraphColoringGPU(const char filename[], int** color){
         bool* near_colors;
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         near_colors[0] = true;
-        KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
+        KernelNeighbourColor<<<1, V*N>>>(graph_d, color, near_colors, V, job);
         //sync CUDA and CPU
         cudaError synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
@@ -183,7 +184,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "//check if need to work again\n";
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         near_colors[0] = true;
-        KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
+        KernelNeighbourColor<<<1, V*N>>>(graph_d, color, near_colors, V, job);
 /*debug*/ std::cout << "//sync CUDA and CPU\n";
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
