@@ -114,15 +114,15 @@ void GraphColoringGPU(const char filename[], int** color){
     for (int i = 0; i < V; i++) seen_colors[i] = false;
 
     for (int i = 0; i < V; i++) {
-       if (!seen_colors[color[i]]) {
-          seen_colors[color[i]] = true;
+       if (!seen_colors[(*color)[i]]) {
+          seen_colors[(*color)[i]] = true;
           num_colors++;
        }  
     }
 
     //print result
     for (int i = 0; i < V; i++) {
-        std::out << i << " - color " << color[i] << std::endl;
+        std::cout << i << " - color " << (*color)[i] << std::endl;
     }
     std::cout << "Solution has " << num_colors << " colors" << std::endl;
 }
@@ -136,7 +136,7 @@ int main(int argc, char const **argv)
     //     std::cout << i << ": '" << argv[i] << "'" << std::endl;
     // }
     int* color;
-    GraphColoringGPU(argv[1], &color)
+    GraphColoringGPU(argv[1], &color);
     return 0;
 }
 
