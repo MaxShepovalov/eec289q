@@ -1,6 +1,12 @@
 //graph coloring
-#include "stdio.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <set>
+#include <sstream>
+#include <string>
+#include <fstream>
 #include <iostream>
+#include <cstring>
 #include <math.h>
 
 //file parcers from example
@@ -11,7 +17,7 @@ __global__ void KroneckerKernelSmall(int M, int N, float* A, float* B, float* C)
 
 void GraphColoringGPU(const char filename[], int** color);
 
-void int main(int argc, char const *argv[])
+int main(int argc, char const *argv[])
 {
     /* code */
     std::cout << argc << " items " << std::endl;
