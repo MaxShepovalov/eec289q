@@ -84,7 +84,7 @@ void GraphColoringGPU(const char filename[], int** color){
         return;
 
     //allocate list of colors per vector
-    cudaMallocManaged(*color, V * sizeof(int));
+    cudaMallocManaged(color, V * sizeof(int));
     //cudaMalloc((int**)&color_d, V * sizeof(int));
 
     //move graph to device memory
@@ -95,7 +95,7 @@ void GraphColoringGPU(const char filename[], int** color){
     int nblocks = 1;
     int nthreads = V;
     //GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color_d, V);
-    GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, color, V);
+    GraphKernel<<<nblocks, nthreads, V * sizeof(bool)>>>(graph_d, *color, V);
 
     //sync CUDA and CPU
     cudaError synced = cudaDeviceSynchronize();
