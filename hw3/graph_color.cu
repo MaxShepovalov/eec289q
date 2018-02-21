@@ -15,7 +15,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-__global__ void GraphKernel(bool* graph, int* color, int V){
+__global__ void GraphKernel(bool* graph, int* color, int V) {
     int index = blockIdx.x * blockDim.x + threadIdx.x; //thread ID
 //    int stride = blockDim.x * gridDim.x;               //
     //each thread works with only one vertex
@@ -26,30 +26,35 @@ __global__ void GraphKernel(bool* graph, int* color, int V){
     __syncthreads();
 
     //decide the color
-    for (int attempt = 0; attempt < V; attempt++){
+    for (int attempt = 0; attempt < V; attempt++) {
 
-        //scan neighbours
-        set<int> near;
+        //scan colors of neighbours
+        bool near[V+1];
+        for (int i = 0; i < V; i++) near[i] = false;
+        
         for (int i = 0; i < V; i++) {
             if (graph[index * V + i] and i != index) {
-                near.insert(color_sh[i]);
+                //near.insert(color_sh[i]);
+                near[color_sh[i]] = true;
             }
         }
 
         //select color
-        for (int color_i = 1; color_i < V; color_i++)
-            if (near.find(color_i) == next.end())
+        for (int color_i = 1; color_i < V; color_i++) {
+            if (!near[color_i]) {
                 color_sh[i] = color_i;
                 break;
+            }
+        }
 
         //wait for others
         __syncthreads();
         
         //check if there is a mistake
-        bool done = True;
+        bool done = true;
         for (int i = index + 1; i < V; i++) {
             if (graph[index * V + i] and color_sh[i]==color_sh[index]) {
-                done = False;
+                done = false;
                 break;
             }
         }
