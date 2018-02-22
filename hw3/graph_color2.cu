@@ -150,7 +150,9 @@ void GraphColoringGPU(const char filename[], int** color){
         for (int i=0; i < V*N; i++)
             near_colors[i] = false;
 
-        KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
+        int nthreads = min(512, V*N);
+        int nblocks = ceil(float(V*N)/nthreads);
+        KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
         //sync CUDA and CPU
         cudaError synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
@@ -167,7 +169,9 @@ void GraphColoringGPU(const char filename[], int** color){
 
         //find colors
 
-        KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
+        nthreads = min(512, N);
+        nblocks = ceil(float(N)/nthreads);
+        KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, job);
         //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
@@ -181,11 +185,15 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/// }
         
         //check if need to work again (update `near_colors`)
+        int nthreads = min(512, V*N);
+        int nblocks = ceil(float(V*N)/nthreads);
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         for (int i=0; i < V*N; i++)
             near_colors[i] = false;
 
-        KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
+        nthreads = min(512, V*N);
+        nblocks = ceil(float(V*N)/nthreads);
+        KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
         //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
@@ -207,7 +215,9 @@ void GraphColoringGPU(const char filename[], int** color){
             new_job[j] = -1;
         }
 
-        KernelCheckColor<<<1 , V*N>>>(graph_d, *color, V, job, new_job);
+        nthreads = min(512, V*N);
+        nblocks = ceil(float(V*N)/nthreads);
+        KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, new_job);
         //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
