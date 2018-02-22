@@ -69,13 +69,13 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
     int index = work[work_index];            //primary vertex index;
     int index_real = index + work_offset;
     int new_work_id = -1; //default value
-    for (int i = index + 1; i < V; i++) {
-        if (graph[index * V + i] and colors[i + work_offset]==colors[index_real]) {
+    for (int i = index_real + 1; i < V; i++) {
+        if (graph[index * V + i] and colors[i]==colors[index_real]) {
             new_work_id = index;
             break;
         }
     }
-    if (work_index < 20) printf("CHECK work %d vertex local %d, vertex real %d, new work %d\n", work_index, index, index_real, new_work_id);
+    if (work_index < 20) printf("CHECK work %d vertex local %d, vertex real %d, color %d, new work %d\n", work_index, index, index_real, colors[index_real], new_work_id);
     new_work[work_index] = new_work_id;
 }
 
