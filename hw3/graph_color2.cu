@@ -145,7 +145,7 @@ void GraphColoringGPU(const char filename[], int** color){
 ////////////////////////////////////////////
     //for (int V_start = 0; V_start < V; V_start += Nverticies){
     //go from last part to first
-    for (int V_start_r = V - Nverticies; V_start_r >= 0; V_start_r -= Nverticies){
+    for (int V_start_r = V - Nverticies; V_start_r > -Nverticies; V_start_r -= Nverticies){
         //start should not be below 0
         int V_start = max(0, V_start_r);
         //actual amount of verticies that awailable for proccessing
