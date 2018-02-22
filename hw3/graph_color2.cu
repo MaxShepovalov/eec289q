@@ -238,8 +238,8 @@ void GraphColoringGPU(const char filename[], int** color){
                 break;
             }
         }
-/*debug*/ D++;
-/*debug*/ if (D == 4) done = true;
+/*debug*/// D++;
+/*debug*/// if (D == 4) done = true;
     }
     cudaFree(job);
 
