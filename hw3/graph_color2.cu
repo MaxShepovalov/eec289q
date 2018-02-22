@@ -128,7 +128,9 @@ void GraphColoringGPU(const char filename[], int** color){
 
     //SEGMENT graph_d FROM HERE
 ////////////////////////////////////////////
-    for (int V_start = 0; V_start < V; V_start += Nverticies){
+    //for (int V_start = 0; V_start < V; V_start += Nverticies){
+    for (int V_start_r = V - Nverticies; V_start_r > 0; V_start_r -= Nverticies){
+        int V_start = max(0, V_start_r);
         //actual amount of verticies that awailable for proccessing
         int Nv = min(Nverticies, V - V_start);
     /*debug*/ printf("part from V %d with %d verticies\n", V_start, Nv);
