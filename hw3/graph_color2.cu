@@ -164,7 +164,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 if (job[j] != -1) N++;
             }
 
-            printf("====while loop %d verticies need processing\n");
+            printf("====while loop %d verticies need processing\n", Nv);
             //test
             N = Nv;
     
