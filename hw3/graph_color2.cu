@@ -185,8 +185,6 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/// }
         
         //check if need to work again (update `near_colors`)
-        int nthreads = min(512, V*N);
-        int nblocks = ceil(float(V*N)/nthreads);
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         for (int i=0; i < V*N; i++)
             near_colors[i] = false;
