@@ -178,7 +178,9 @@ void GraphColoringGPU(const char filename[], int** color){
         }
 
 /*debug*/ for (int a=0; a<V; a++)
-/*debug*/   std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
+/*debug*/     if (job[a]!=-1)
+/*debug*/         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
+/*debug*/     else std::cout << "    job " << a << ": " << job[a] << "\n";
 
 /*debug*/ std::cout << "//check colors nearby " << N << " vertexes\n";
 
