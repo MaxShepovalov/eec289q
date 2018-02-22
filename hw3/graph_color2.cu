@@ -134,7 +134,7 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         }
-    cudaError malloc_err = cudaMallocManaged(&near_colors, V * Nverticies * sizeof(bool));
+    malloc_err = cudaMallocManaged(&near_colors, V * Nverticies * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "NEAR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
@@ -188,14 +188,14 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*///     else std::cout << "    work " << a << ": " << work[a] << "\n";
     
 
-            nthreads = min(512, V*Nverticies);
-            nblocks = ceil(V * Nverticies / nthreads);
+            int nthreads = min(512, V*Nverticies);
+            int nblocks = ceil(V * Nverticies / nthreads);
             KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
             //for (int i=0; i < V*Nverticies; i++)
             //    near_colors[i] = false;
 
-            int nthreads = min(512, V*N);
-            int nblocks = ceil(float(V*N)/nthreads);
+            nthreads = min(512, V*N);
+            nblocks = ceil(float(V*N)/nthreads);
 /*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
             KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
             //sync CUDA and CPU
