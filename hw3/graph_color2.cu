@@ -9,8 +9,23 @@
 #include <cstring>
 #include <math.h>
 
+
+//
+//print all verticies. Default maximum 100 verticies
+//
+
 //#define PRINTALL
+
+//
+//print which steps the program running (Kernel launch, CPU search or check loops)
+//
+
 //#define PRINT_DEBUG
+
+//
+//print loop info (while loop) to see if the program stalls
+//
+
 #define PRINT_LOOP
 
 //file parsers from the example
@@ -242,14 +257,9 @@ void GraphColoringGPU(const char filename[], int** color){
                 #endif
             
                 KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, work, V_start);
-                //                //sync CUDA and CPU
-                //                cudaError synced = cudaDeviceSynchronize();
-                //                    if (synced != cudaSuccess){
-                //                        std::cout << "SEARCH_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
-                //                        exit(synced);
-                //                    }
             } else {
                 
+                // no need to run GPU for one item
                 #ifdef PRINT_DEBUG
                     printf("  SEARCH launching CPU for 1 item\n");
                 #endif
@@ -271,6 +281,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 }
             }
 
+            //check if there are wrong colors
             if (N != 1) {
                 nthreads = min(512, Nverticies);
                 nblocks = ceil(float(Nverticies)/nthreads);
@@ -282,6 +293,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, work, V_start);
             } else {
                 
+                //no need to run GPU for one item
                 #ifdef PRINT_DEBUG
                     printf("  CHECK launching CPU for 1 item\n");
                 #endif
@@ -305,6 +317,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 }
             }
 
+            //sync GPU with CPU for proper work[] access
             cudaError synced = cudaDeviceSynchronize();
                 if (synced != cudaSuccess){
                     std::cout << "CYCLE_END cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
@@ -319,6 +332,7 @@ void GraphColoringGPU(const char filename[], int** color){
                     break;
                 }
             }
+
         } //while not done
     } //for V_start
     cudaFree(near_colors);
@@ -362,17 +376,14 @@ void GraphColoringGPU(const char filename[], int** color){
 /////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char const **argv)
 {
-    /* code */
-    // std::cout << argc << " items " << std::endl;
-    // for (int i = 0; i < argc; i++){
-    //     std::cout << i << ": '" << argv[i] << "'" << std::endl;
-    // }
     int* color;
     GraphColoringGPU(argv[1], &color);
     return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
+//parsers from the example
+
 // Read MatrixMarket graphs
 // Assumes input nodes are numbered starting from 1
 int ReadMMFile(const char filename[], bool** graph, int* V) 
