@@ -162,6 +162,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
         //repeat until find solition
         int N;
+        int D = 0;
         while (!done){
 
 /**/            //sort work list and count amount of work
@@ -178,8 +179,8 @@ void GraphColoringGPU(const char filename[], int** color){
 /**/                //cannot put `else`, as if work[j] == -1, the array will be different at this point
 /**/                if (work[j] != -1) N++;
 /**/            }
-
-            printf("====while loop %d verticies need processing; part from V %d with %d verticies\n", N, V_start, Nv);
+            D++;
+            printf("====while loop %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
             //test
             //N = Nv;
     
