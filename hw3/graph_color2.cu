@@ -212,6 +212,11 @@ void GraphColoringGPU(const char filename[], int** color){
                     }
             } else {
             printf("  SEARCH launching CPU for 1 item\n");
+                cudaError search_synced = cudaDeviceSynchronize();
+                if (search_synced != cudaSuccess){
+                    std::cout << "SEARCH_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(search_synced) << std::endl;
+                    exit(search_synced);
+                }
                 int index = job[0] + V_start;
                 for (int clr = 1; clr < V; clr ++){
                     if (!near_colors[clr]){
@@ -270,6 +275,11 @@ void GraphColoringGPU(const char filename[], int** color){
                 //sync CUDA and CPU
             } else {
             printf("  CHECK launching CPU for 1 item\n");
+                cudaError check_synced = cudaDeviceSynchronize();
+                if (check_synced != cudaSuccess){
+                    std::cout << "CHECK_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
+                    exit(check_synced);
+                }
                 int index = job[0] + V_start;
                 job[0] = -1;
                 for (int i = index + 1; i < V; i++) {
