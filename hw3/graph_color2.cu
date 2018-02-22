@@ -161,6 +161,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //start kernel
 
     //repeat until find solition
+/*debug*/ int D = 0;
     while (!done){
 /*debug*/ std::cout << "//sort job list and count amount of job\n";
         int N = 0;
@@ -251,7 +252,8 @@ void GraphColoringGPU(const char filename[], int** color){
                 break;
             }
         }
-        break;
+/*debug*/D++
+        if (D==4) break;
     }
     cudaFree(job);
 
