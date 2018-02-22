@@ -96,7 +96,7 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int* job
 __global__ void KernelCheckColor(int* colors, bool* nearcolors, int V, int* job, int* new_job){
     int job_index = threadIdx.x; //job index
     int index = job[job_index];  //vertex index
-    if (nearcolors[colors[index]]){
+    if (nearcolors[index * V + colors[index]] or colors[index] == 0){
         new_job[job_index] = index;
     } else {
         new_job[job_index] = -1;
@@ -222,7 +222,9 @@ void GraphColoringGPU(const char filename[], int** color){
         
 /*debug*/ std::cout << "//check if need to work again (update `near_colors`)\n";
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
-        near_colors[0] = true;
+        for (int i=0; i < V*N; i++)
+            near_colors[i] = false;
+
         KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
         std::cout << "//sync CUDA and CPU\n";
         synced = cudaDeviceSynchronize();
@@ -252,9 +254,9 @@ void GraphColoringGPU(const char filename[], int** color){
         cudaFree(near_colors);
 
 /*debug*/ for (int a=0; a<V; a++)
-/*debug*/     if (job[a]!=-1)
-/*debug*/         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
-/*debug*/     else std::cout << "    job " << a << ": " << job[a] << "\n";
+/*debug*/     if (new_job[a]!=-1)
+/*debug*/         std::cout << "    new_job " << a << ": " << new_job[a] << " color: " << (*color)[new_job[a]] << "\n";
+/*debug*/     else std::cout << "    new_job " << a << ": " << new_job[a] << "\n";
         
 /*debug*/ std::cout << "//swap job lists\n";
         //cudaFree(old_job);
