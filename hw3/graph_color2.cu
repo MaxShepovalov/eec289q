@@ -54,7 +54,7 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
         int index = work[work_index];  //vertex index
         int index_real = index + work_offset;
         for (int clr = 1; clr < V; clr ++){
-            if (!nearcolors[work_index * V + clr]){
+            if (!nearcolors[index * V + clr]){
                 colors[index_real] = clr;
                 break;
             }
