@@ -217,13 +217,14 @@ void GraphColoringGPU(const char filename[], int** color){
                     std::cout << "SEARCH_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(search_synced) << std::endl;
                     exit(search_synced);
                 }
-                printf("1\n");
+
+                for(int i=0; i<Nv; i++){
+                    printf("job #%d - %d\n",i,job[i])
+                }
+
                 int index = job[0] + V_start;
-                printf("2\n");
                 for (int clr = 1; clr < V; clr ++){
-                    printf("3 at loop %d\n",clr);
                     if (!near_colors[clr]){
-                        printf("4 at loop %d in if for index %d\n",clr,index);
                         (*color)[index] = clr;
                         break;
                     }
@@ -243,12 +244,10 @@ void GraphColoringGPU(const char filename[], int** color){
             //        std::cout << "NEAR_COLORS_2 cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             //        exit(malloc_err);
             //    }
-            printf("6\n");
             for (int i=0; i < V*N; i++){
                 printf("7 at loop %d\n",i);
                 near_colors[i] = false;
             }
-            printf("8\n");
     
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
