@@ -23,12 +23,12 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 //run neighbor color for each pairs of verticies
-__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
-    int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
+__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* work){
+    int work_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from work list
     int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
-    //int near_real = near + job_offset;
-    int index = job[job_index];            //primary vertex index;
-    //int index_real = index + job_offset;
+    //int near_real = near + work_offset;
+    int index = work[work_index];            //primary vertex index;
+    //int index_real = index + work_offset;
 
     //stage 1. scan neighbour
 
@@ -40,18 +40,18 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 
     //stage 2. mark used colors
     if (color_near_r != 0){
-        output[job_index * V + color_near_r] = true;
+        output[work_index * V + color_near_r] = true;
     }
 }
 
 //run search per each vertex
-__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, int* job, int job_offset){
-    int job_index = blockIdx.x * blockDim.x + threadIdx.x; //job index
-    if (job_index < N){
-        int index = job[job_index];  //vertex index
-        int index_real = index + job_offset;
+__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, int* work, int work_offset){
+    int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index
+    if (work_index < N){
+        int index = work[work_index];  //vertex index
+        int index_real = index + work_offset;
         for (int clr = 1; clr < V; clr ++){
-            if (!nearcolors[job_index * V + clr]){
+            if (!nearcolors[work_index * V + clr]){
                 colors[index_real] = clr;
                 break;
             }
@@ -60,17 +60,17 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
 }
 
 //run check per each vertex
-__global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int* new_job, int job_offset){
-    //int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
-    int job_index = blockIdx.x * blockDim.x + threadIdx.x; //job index
+__global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int* new_work, int work_offset){
+    //int work_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from work list
+    int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index
     //int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
-    int index = job[job_index];            //primary vertex index;
-    int index_real = index + job_offset;
+    int index = work[work_index];            //primary vertex index;
+    int index_real = index + work_offset;
     //need scatter to gather
-    new_job[job_index] = -1; //default value
+    new_work[work_index] = -1; //default value
     for (int i = index + 1; i < V; i++) {
-        if (graph[index * V + i] and colors[i + job_offset]==colors[index_real]) {
-            new_job[job_index] = index;
+        if (graph[index * V + i] and colors[i + work_offset]==colors[index_real]) {
+            new_work[work_index] = index;
             break;
         }
     }
@@ -112,10 +112,11 @@ void GraphColoringGPU(const char filename[], int** color){
     //find memory devision
     //                                      VV leave 20MB free
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of verticies per one full-memory alocation
+    int Nparts = ceil(V/Nverticies);
 
-    //job for GPU (indexes of verticies to process)
-    int* job;
-    malloc_err = cudaMallocManaged(&job, Nverticies * sizeof(int));
+    //work for GPU (indexes of verticies to process)
+    int* work;
+    malloc_err = cudaMallocManaged(&work, Nverticies * sizeof(int));
         if (malloc_err != cudaSuccess){
             std::cout << "JOB_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
@@ -129,53 +130,51 @@ void GraphColoringGPU(const char filename[], int** color){
     //SEGMENT graph_d FROM HERE
 ////////////////////////////////////////////
     //for (int V_start = 0; V_start < V; V_start += Nverticies){
+    //go from last part to first
     for (int V_start_r = V - Nverticies; V_start_r > 0; V_start_r -= Nverticies){
+        //start should not be below 0
         int V_start = max(0, V_start_r);
         //actual amount of verticies that awailable for proccessing
-        int Nv = min(Nverticies, V - V_start);
+        int Nv = min(Nverticies - V_start + V_start_r, V - V_start);
     /*debug*/ printf("part from V %d with %d verticies\n", V_start, Nv);
 
-        //fill job
+        //fill work
         for (int i = 0; i < Nv; i++){
-            job[i] = i;
-    /*debug*/// std::cout << "job " << i << " now is " << job[i] << "\n";
+            work[i] = i;
         }
         bool done = false;
-        
-        //start kernel
 
         //move graph to device memory
         cudaMemcpy(graph_d, graph_h + V_start * V, V * Nv * sizeof(bool), cudaMemcpyHostToDevice);
     
         //repeat until find solition
-    /*debug*/// int D = 0;
         int N;
         while (!done){
-            //sort job list and count amount of job
-            N = 0;
-            for (int j=0; j < Nv; j++){
-                if (job[j] == -1){
-                    for(int jj=j; jj < V; jj++){
-                        if (job[jj]!=-1){
-                            job[jj-1] = job[jj];
-                            job[jj] = -1;
-                        }
-                    }
-                }
-                //cannot put `else`, as if job[j] == -1, the array will be different at this point
-                if (job[j] != -1) N++;
-            }
+
+/**/            //sort work list and count amount of work
+/**/            N = 0;
+/**/            for (int j=0; j < Nv; j++){
+/**/                if (work[j] == -1){
+/**/                    for(int jj=j; jj < V; jj++){
+/**/                        if (work[jj]!=-1){
+/**/                            work[jj-1] = work[jj];
+/**/                            work[jj] = -1;
+/**/                        }
+/**/                    }
+/**/                }
+/**/                //cannot put `else`, as if work[j] == -1, the array will be different at this point
+/**/                if (work[j] != -1) N++;
+/**/            }
 
             printf("====while loop %d verticies need processing\n", N);
             //test
-            N = Nv;
+            //N = Nv;
     
     /*debug*/// for (int a=0; a<V; a++)
-    /*debug*///     if (job[a]!=-1)
-    /*debug*///         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
-    /*debug*///     else std::cout << "    job " << a << ": " << job[a] << "\n";
+    /*debug*///     if (work[a]!=-1)
+    /*debug*///         std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
+    /*debug*///     else std::cout << "    work " << a << ": " << work[a] << "\n";
     
-            //check colors nearby " << N << " verticies
             bool* near_colors;
             cudaError malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
                 if (malloc_err != cudaSuccess){
@@ -185,11 +184,11 @@ void GraphColoringGPU(const char filename[], int** color){
     
             for (int i=0; i < V*N; i++)
                 near_colors[i] = false;
-    
+
             int nthreads = min(512, V*N);
             int nblocks = ceil(float(V*N)/nthreads);
 /*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
             //sync CUDA and CPU
             //cudaError synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
@@ -198,7 +197,7 @@ void GraphColoringGPU(const char filename[], int** color){
             //    }
     
     /*debug*/// for (int r=0; r < N; r++){
-    /*debug*///   printf("    near V %d: ",job[r]);
+    /*debug*///   printf("    near V %d: ",work[r]);
     /*debug*///   for (int c=0; c < V; c++)
     /*debug*///     printf(" %d",near_colors[r*V+c]);
     /*debug*///   printf("\n");
@@ -209,7 +208,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
     /*debug info*/printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
-                KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, job, V_start);
+                KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, work, V_start);
                 //sync CUDA and CPU
                 cudaError synced = cudaDeviceSynchronize();
                     if (synced != cudaSuccess){
@@ -224,8 +223,8 @@ void GraphColoringGPU(const char filename[], int** color){
                     exit(search_synced);
                 }
                 for (int ji = 0; ji < Nv; ji++){
-                    if (job[ji]==-1) continue;
-                    int index = job[ji] + V_start;
+                    if (work[ji]==-1) continue;
+                    int index = work[ji] + V_start;
                     for (int clr = 1; clr < V; clr ++){
                         if (!near_colors[clr]){
                             (*color)[index] = clr;
@@ -254,7 +253,7 @@ void GraphColoringGPU(const char filename[], int** color){
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
 /*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
             //sync CUDA and CPU
             //synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
@@ -263,24 +262,24 @@ void GraphColoringGPU(const char filename[], int** color){
             //    }
     
     /*debug*/// for (int r=0; r < N; r++){
-    /*debug*///   printf("    near V %d: ",job[r]);
+    /*debug*///   printf("    near V %d: ",work[r]);
     /*debug*///   for (int c=0; c < V; c++)
     /*debug*///     printf(" %d",near_colors[r*V+c]);
     /*debug*///   printf("\n");
     /*debug*/// }
     
-            //update job
-            //int* new_job;
-            //cudaMallocManaged(&new_job, V * sizeof(bool));
+            //update work
+            //int* new_work;
+            //cudaMallocManaged(&new_work, V * sizeof(bool));
             //for (int j=0; j < V; j++){
-            //    new_job[j] = -1;
+            //    new_work[j] = -1;
             //}
             if (N != 1) {
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
     /*debug info*/printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
-                KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, job, V_start);
-                //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, new_job);
+                KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, work, V_start);
+                //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, new_work);
                 //sync CUDA and CPU
             } else {
     /*debug info*/printf("  CHECK launching CPU for 1 item\n");
@@ -290,12 +289,12 @@ void GraphColoringGPU(const char filename[], int** color){
                     exit(check_synced);
                 }
                 for (int ji = 0; ji < Nv; ji++){
-                    if (job[ji]==-1) continue;
-                    int index = job[ji] + V_start;
-                    job[ji] = -1;
+                    if (work[ji]==-1) continue;
+                    int index = work[ji] + V_start;
+                    work[ji] = -1;
                     for (int i = index + 1; i < V; i++) {
                         if (graph_h[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
-                            job[ji] = index - V_start;
+                            work[ji] = index - V_start;
                             break;
                         }
                     }
@@ -304,14 +303,14 @@ void GraphColoringGPU(const char filename[], int** color){
             
     
     /*debug*/// for (int a=0; a<V; a++)
-    /*debug*///     if (new_job[a]!=-1)
-    /*debug*///         std::cout << "    new_job " << a << ": " << new_job[a] << " color: " << (*color)[new_job[a]] << "\n";
-    /*debug*///     else std::cout << "    new_job " << a << ": " << new_job[a] << "\n";
+    /*debug*///     if (new_work[a]!=-1)
+    /*debug*///         std::cout << "    new_work " << a << ": " << new_work[a] << " color: " << (*color)[new_work[a]] << "\n";
+    /*debug*///     else std::cout << "    new_work " << a << ": " << new_work[a] << "\n";
             
-            //swap job lists
-            //cudaFree(old_job);
-            //cudaFree(job);
-            //job = new_job;
+            //swap work lists
+            //cudaFree(old_work);
+            //cudaFree(work);
+            //work = new_work;
 
             cudaError synced = cudaDeviceSynchronize();
                 if (synced != cudaSuccess){
@@ -323,7 +322,7 @@ void GraphColoringGPU(const char filename[], int** color){
             //check if done
             done = true;
             for(int i=0; i < V; i++){
-                if (job[i] != -1){
+                if (work[i] != -1){
     /*debug*///       printf("Need to work more\n");
                     done = false;
                     break;
@@ -335,7 +334,7 @@ void GraphColoringGPU(const char filename[], int** color){
         } //while not done
 
     } //for V_start
-    cudaFree(job);
+    cudaFree(work);
     cudaFree(graph_d);
 
 //analyze result
