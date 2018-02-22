@@ -217,7 +217,7 @@ void GraphColoringGPU(const char filename[], int** color){
         cudaFree(near_colors);
 
 /*debug*/ for (int c=0; c<V; c++){
-/*debug*/     printf("    V %d - color %d\n", c, (*color)[]);
+/*debug*/     printf("    V %d - color %d\n", c, (*color)[c]);
 /*debug*/ }
         
 /*debug*/ std::cout << "//check if need to work again (update `near_colors`)\n";
