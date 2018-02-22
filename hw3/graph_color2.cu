@@ -68,14 +68,15 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
     int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index           //neighbor vertex index         (col of graph)
     int index = work[work_index];            //primary vertex index;
     int index_real = index + work_offset;
-    new_work[work_index] = -1; //default value
+    int new_work_id = -1; //default value
     for (int i = index + 1; i < V; i++) {
         if (graph[index * V + i] and colors[i + work_offset]==colors[index_real]) {
-            new_work[work_index] = index;
+            new_work_id = index;
             break;
         }
     }
-    if (work_index < 20) printf("CHECK work %d vertex local %d, vertex real %d, new work %d\n", work_index, index, index_real,new_work[work_index]);
+    if (work_index < 20) printf("CHECK work %d vertex local %d, vertex real %d, new work %d\n", work_index, index, index_real, new_work_id);
+    new_work[work_index] = new_work_id;
 }
 
 __global__ void KernelBoolClear(bool* array, int size){
