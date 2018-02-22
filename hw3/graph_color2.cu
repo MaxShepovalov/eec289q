@@ -44,7 +44,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     if (color_near_r != 0){
         output[work_index * V + color_near_r] = true;
     }
-/*debug*///if (work_index < 3) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
+/*debug*/if (work_index == 0) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
 }
 
 //run search per each vertex
@@ -59,7 +59,7 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
                 break;
             }
         }
-        if (work_index < 20) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, colors[index_real]);
+        if (work_index == 0) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, colors[index_real]);
     }
 }
 
@@ -72,11 +72,11 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
     for (int i = index_real + 1; i < V; i++) {
         if (graph[index * V + i] and colors[i]==colors[index_real]) {
             new_work_id = index;
-            printf("CHECK_FAIL work %d vertex local %d, vertex real %d, color %d matches color %d at vertex %d, repeat work\n", work_index, index, index_real, colors[index_real], colors[i], i);
+            if (work_index == 0) printf("CHECK_FAIL work %d vertex local %d, vertex real %d, color %d matches color %d at vertex %d, repeat work\n", work_index, index, index_real, colors[index_real], colors[i], i);
             break;
         }
     }
-    if (work_index < 20) printf("CHECK work %d vertex local %d, vertex real %d, color %d, new work %d\n", work_index, index, index_real, colors[index_real], new_work_id);
+    if (work_index == 0) printf("CHECK work %d vertex local %d, vertex real %d, color %d, new work %d\n", work_index, index, index_real, colors[index_real], new_work_id);
     new_work[work_index] = new_work_id;
 }
 
