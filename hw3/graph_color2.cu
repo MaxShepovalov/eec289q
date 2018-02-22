@@ -71,7 +71,6 @@ void GraphColoringGPU(const char filename[], int** color){
     int V;         //number of vertexes
     bool* graph_h; //graph matrix on host
     bool* graph_d; //graph matrix on device
-    //int* color_d;  //colors on device
 
     //read graph file
     if (std::string(filename).find(".col") != std::string::npos)
@@ -172,7 +171,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "//find colors\n";
 
         KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
-        std::cout << "//sync CUDA and CPU\n";
+        //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "FIND_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
@@ -190,7 +189,7 @@ void GraphColoringGPU(const char filename[], int** color){
             near_colors[i] = false;
 
         KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
-        std::cout << "//sync CUDA and CPU\n";
+        //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "COLOR_NEARBY_CHECK cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
