@@ -181,8 +181,6 @@ void GraphColoringGPU(const char filename[], int** color){
 /**/            }
             D++;
             printf("====while loop %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
-            //test
-            //N = Nv;
     
     /*debug*/// for (int a=0; a<V; a++)
     /*debug*///     if (work[a]!=-1)
@@ -193,8 +191,6 @@ void GraphColoringGPU(const char filename[], int** color){
             int nthreads = min(512, V*Nverticies);
             int nblocks = ceil(V * Nverticies / nthreads);
             KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
-            //for (int i=0; i < V*Nverticies; i++)
-            //    near_colors[i] = false;
 
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
@@ -245,24 +241,13 @@ void GraphColoringGPU(const char filename[], int** color){
                 }
             }
     
-            //cudaFree(near_colors);
-    
     /*debug*/// for (int c=0; c<V; c++){
     /*debug*///     printf("    V %d - color %d\n", c, (*color)[c]);
     /*debug*/// }
-            
-            //check if need to work again (update `near_colors`)
-            //malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
-            //    if (malloc_err != cudaSuccess){
-            //        std::cout << "NEAR_COLORS_2 cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
-            //        exit(malloc_err);
-            //    }
+
             nthreads = min(512, V*Nverticies);
             nblocks = ceil(V * Nverticies / nthreads);
             KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
-            //for (int i=0; i < V*Nverticies; i++){
-            //    near_colors[i] = false;
-            //}
     
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
@@ -281,19 +266,12 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*///     printf(" %d",near_colors[r*V+c]);
     /*debug*///   printf("\n");
     /*debug*/// }
-    
-            //update work
-            //int* new_work;
-            //cudaMallocManaged(&new_work, V * sizeof(bool));
-            //for (int j=0; j < V; j++){
-            //    new_work[j] = -1;
-            //}
+
             if (N != 1) {
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
     /*debug info*/printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
                 KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, work, V_start);
-                //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, new_work);
                 //sync CUDA and CPU
             } else {
     /*debug info*/printf("  CHECK launching CPU for 1 item\n");
@@ -316,15 +294,12 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             
     
-    /*debug*/// for (int a=0; a<V; a++)
-    /*debug*///     if (new_work[a]!=-1)
-    /*debug*///         std::cout << "    new_work " << a << ": " << new_work[a] << " color: " << (*color)[new_work[a]] << "\n";
-    /*debug*///     else std::cout << "    new_work " << a << ": " << new_work[a] << "\n";
-            
-            //swap work lists
-            //cudaFree(old_work);
-            //cudaFree(work);
-            //work = new_work;
+            if (N < 10) {
+    /*debug*/ for (int a=0; a<10; a++)
+    /*debug*/     if (work[a]!=-1)
+    /*debug*/         std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
+    /*debug*/     else std::cout << "    work " << a << ": " << work[a] << "\n";
+            }
 
             cudaError synced = cudaDeviceSynchronize();
                 if (synced != cudaSuccess){
@@ -336,13 +311,10 @@ void GraphColoringGPU(const char filename[], int** color){
             done = true;
             for(int i=0; i < V; i++){
                 if (work[i] != -1){
-    /*debug*///       printf("Need to work more\n");
                     done = false;
                     break;
                 }
             }
-    /*debug*/// D++;
-    /*debug*/// if (D == 4) done = true;
 
         } //while not done
 
