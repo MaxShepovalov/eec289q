@@ -99,6 +99,9 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //find memory devision
+    //size_t free, total;
+    cudaMemGetInfo(&free,&total); 
+    printf("\n  2:  GPU: %d KB free of total %d KB\n",free/1024,total/1024);
     //                                      VV leave 20MB free
     int Nvertexes = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of vertexes per one full-memory alocation
 
@@ -114,6 +117,10 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         }
+
+    //size_t free, total;
+    cudaMemGetInfo(&free,&total); 
+    printf("\n    3:   GPU: %d KB free of total %d KB\n",free/1024,total/1024);
 
     //SEGMENT graph_d FROM HERE
 ////////////////////////////////////////////
