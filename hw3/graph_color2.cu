@@ -112,6 +112,11 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "JOB_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         }
+
+    //size_t free, total;
+    cudaMemGetInfo(&free,&total); 
+    printf("\n    3:   GPU: %d KB free of total %d KB\n",free/1024,total/1024);
+
     malloc_err = cudaMalloc(&graph_d, V * Nvertexes * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
@@ -120,7 +125,7 @@ void GraphColoringGPU(const char filename[], int** color){
 
     //size_t free, total;
     cudaMemGetInfo(&free,&total); 
-    printf("\n    3:   GPU: %d KB free of total %d KB\n",free/1024,total/1024);
+    printf("\n    4:   GPU: %d KB free of total %d KB\n",free/1024,total/1024);
 
     //SEGMENT graph_d FROM HERE
 ////////////////////////////////////////////
