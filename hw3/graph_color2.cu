@@ -28,7 +28,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
     int near_real = near + job_offset;
     int index = job[job_index];            //primary vertex index;
-    int index_real = index + job_offset;
+    //int index_real = index + job_offset;
 
     //stage 1. scan neighbour
 
@@ -246,12 +246,6 @@ void GraphColoringGPU(const char filename[], int** color){
             //        std::cout << "COLOR_NEARBY_CHECK cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             //        exit(synced);
             //    }
-            cudaError synced = cudaDeviceSynchronize();
-                if (synced != cudaSuccess){
-                    std::cout << "JOB_UPDATE cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
-                    exit(synced);
-                }
-            cudaFree(near_colors);
     
     /*debug*/// for (int r=0; r < N; r++){
     /*debug*///   printf("    near V %d: ",job[r]);
@@ -278,7 +272,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 int index = job[0] + V_start;
                 job[0] = -1;
                 for (int i = index + 1; i < V; i++) {
-                    if (graph_d[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
+                    if (graph_h[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
                         job[0] = index - V_start;
                         break;
                     }
@@ -295,6 +289,13 @@ void GraphColoringGPU(const char filename[], int** color){
             //cudaFree(old_job);
             //cudaFree(job);
             //job = new_job;
+
+            cudaError synced = cudaDeviceSynchronize();
+                if (synced != cudaSuccess){
+                    std::cout << "CYCLE_END cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+                    exit(synced);
+                }
+            cudaFree(near_colors);
     
             //check if done
             done = true;
