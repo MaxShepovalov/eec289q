@@ -195,6 +195,14 @@ void GraphColoringGPU(const char filename[], int** color){
             exit(synced);
         }
 
+/*debug*/ for (int r=0; r < N; r++){
+/**/        printf("near V %d: ",job[r]);
+/**/        for (int c=0; c < V; c++)
+/**/          printf("%d",near_colors[r*V+c]);
+/**/        printf("\n");
+/**/      }        
+
+
 /*debug*/ std::cout << "//find colors\n";
 
         KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
