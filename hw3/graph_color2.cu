@@ -80,7 +80,7 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int*
 
 void GraphColoringGPU(const char filename[], int** color){
     int V;         //number of verticies
-    bool* graph_d; //graph matrix on device
+    bool* graph_h; //graph matrix on host
 
     //read graph file
     if (std::string(filename).find(".col") != std::string::npos)
@@ -103,10 +103,10 @@ void GraphColoringGPU(const char filename[], int** color){
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of verticies per one full-memory alocation
     int Nparts = ceil(V/Nverticies); // number of parts
 
-    bool* graph_h; //graph matrix on host
-    bool* near_colors
+    bool* graph_d; //graph matrix on device
+    bool* near_colors;
     int* job;      //job for GPU (indexes of verticies to process)
-    int job_h;
+    int* job_h;
     //allocate list of colors per vector
     cudaError malloc_err = cudaMallocManaged(color, V * sizeof(int));
         if (malloc_err != cudaSuccess){
@@ -123,7 +123,7 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         };
-    cudaError malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+    malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "NEAR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
