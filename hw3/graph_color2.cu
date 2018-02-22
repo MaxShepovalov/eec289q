@@ -163,7 +163,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //repeat until find solition
 /*debug*/ int D = 0;
     while (!done){
-/*debug*/ std::cout << "//sort job list and count amount of job\n";
+/*debug*/ std::cout << "///////////////////////////////////////\n//sort job list and count amount of job\n";
         int N = 0;
         for (int j=0; j < V; j++){
             if (job[j] == -1){
@@ -187,7 +187,9 @@ void GraphColoringGPU(const char filename[], int** color){
 
         bool* near_colors;
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
-        near_colors[0] = true;
+        for (int i=0; i < V*N; i++)
+            near_colors[i] = false;
+
         KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
         //sync CUDA and CPU
         cudaError synced = cudaDeviceSynchronize();
@@ -197,34 +199,44 @@ void GraphColoringGPU(const char filename[], int** color){
         }
 
 /*debug*/ for (int r=0; r < N; r++){
-/**/        printf("near V %d: ",job[r]);
-/**/        for (int c=0; c < V; c++)
-/**/          printf(" %d",near_colors[r*V+c]);
-/**/        printf("\n");
-/**/      }        
-
+/*debug*/   printf("    near V %d: ",job[r]);
+/*debug*/   for (int c=0; c < V; c++)
+/*debug*/     printf(" %d",near_colors[r*V+c]);
+/*debug*/   printf("\n");
+/*debug*/ }        
 
 /*debug*/ std::cout << "//find colors\n";
 
         KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
-/*debug*/ std::cout << "//sync CUDA and CPU\n";
+        std::cout << "//sync CUDA and CPU\n";
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "FIND_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
         cudaFree(near_colors);
+
+/*debug*/ for (int c=0; c<V; c++){
+/*debug*/     printf("    V %d - color %d\n", c, (*color)[]);
+/*debug*/ }
         
-/*debug*/ std::cout << "//check if need to work again\n";
+/*debug*/ std::cout << "//check if need to work again (update `near_colors`)\n";
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         near_colors[0] = true;
         KernelNeighbourColor<<<1, V*N>>>(graph_d, *color, near_colors, V, job);
-/*debug*/ std::cout << "//sync CUDA and CPU\n";
+        std::cout << "//sync CUDA and CPU\n";
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
             std::cout << "COLOR_NEARBY_CHECK cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
+
+/*debug*/ for (int r=0; r < N; r++){
+/*debug*/   printf("    near V %d: ",job[r]);
+/*debug*/   for (int c=0; c < V; c++)
+/*debug*/     printf(" %d",near_colors[r*V+c]);
+/*debug*/   printf("\n");
+/*debug*/ }
 
 /*debug*/ std::cout << "//update job\n";
         int* new_job;
@@ -238,6 +250,11 @@ void GraphColoringGPU(const char filename[], int** color){
             exit(synced);
         }
         cudaFree(near_colors);
+
+/*debug*/ for (int a=0; a<V; a++)
+/*debug*/     if (job[a]!=-1)
+/*debug*/         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
+/*debug*/     else std::cout << "    job " << a << ": " << job[a] << "\n";
         
 /*debug*/ std::cout << "//swap job lists\n";
         //cudaFree(old_job);
@@ -248,12 +265,13 @@ void GraphColoringGPU(const char filename[], int** color){
         done = true;
         for(int i=0; i < V; i++){
             if (job[i] == -1){
+/*debug*/       printf("Need to work more\n");
                 done = false;
                 break;
             }
         }
-/*debug*/D++;
-        if (D==4) break;
+/*debug*/ D++;
+/*debug*/ if (D == 4) done = true;
     }
     cudaFree(job);
 
