@@ -20,20 +20,22 @@
 void ReadColFile(const char filename[], bool** graph, int* V);
 void ReadMMFile(const char filename[], bool** graph, int* V);
 
-////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 //run neighbor color for each pairs of verticies
-__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
+__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job, int job_offset){
     int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
     int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
+    int near_real = near + job_offset;
     int index = job[job_index];            //primary vertex index;
+    int index_real = index + job_offset;
 
     //stage 1. scan neighbour
 
     //find color for neighbour
     int color_near_r = 0;
     if (graph[index * V + near]){
-        color_near_r = colors[near];
+        color_near_r = colors[near_real];
     }
 
     //stage 2. mark used colors
@@ -43,13 +45,14 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 }
 
 //run search per each vertex
-__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, int* job){
+__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, int* job, int job_offset){
     int job_index = blockIdx.x * blockDim.x + threadIdx.x; //job index
     if (job_index < N){
         int index = job[job_index];  //vertex index
+        int index_real = index + job_offset;
         for (int clr = 1; clr < V; clr ++){
             if (!nearcolors[job_index * V + clr]){
-                colors[index] = clr;
+                colors[index_real] = clr;
                 break;
             }
         }
@@ -57,19 +60,22 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
 }
 
 //run check per each vertex
-__global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int* new_job){
+__global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int* new_job, int job_offset){
     int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
     //int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
+    int index_real = index + job_offset;
     //need scatter to gather
     new_job[job_index] = -1; //default value
     for (int i = index + 1; i < V; i++) {
-        if (graph[index * V + i] and colors[i]==colors[index]) {
+        if (graph[index * V + i] and colors[i + job_offset]==colors[index_real]) {
             new_job[job_index] = index;
             break;
         }
     }
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GraphColoringGPU(const char filename[], int** color){
     int V;         //number of verticies
@@ -176,7 +182,7 @@ void GraphColoringGPU(const char filename[], int** color){
             int nthreads = min(512, V*N);
             int nblocks = ceil(float(V*N)/nthreads);
         printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job, V_start);
             //sync CUDA and CPU
             //cudaError synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
@@ -196,7 +202,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
             printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
-                KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, job);
+                KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, job, V_start);
                 //sync CUDA and CPU
                 cudaError synced = cudaDeviceSynchronize();
                     if (synced != cudaSuccess){
@@ -205,7 +211,7 @@ void GraphColoringGPU(const char filename[], int** color){
                     }
             } else {
             printf("  SEARCH launching CPU for 1 item\n");
-                int index = job[0];
+                int index = job[0] + V_start;
                 for (int clr = 1; clr < V; clr ++){
                     if (!near_colors[clr]){
                         (*color)[index] = clr;
@@ -233,7 +239,7 @@ void GraphColoringGPU(const char filename[], int** color){
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
         printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job, V_start);
             //sync CUDA and CPU
             //synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
@@ -264,16 +270,16 @@ void GraphColoringGPU(const char filename[], int** color){
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
             printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
-                KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, job);
+                KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, job, V_start);
                 //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, new_job);
                 //sync CUDA and CPU
             } else {
             printf("  CHECK launching CPU for 1 item\n");
-                int index = job[0];
+                int index = job[0] + V_start;
                 job[0] = -1;
                 for (int i = index + 1; i < V; i++) {
-                    if (graph[index * V + i] and colors[i]==colors[index]) {
-                        job[0] = index;
+                    if (graph_d[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
+                        job[0] = index - V_start;
                         break;
                     }
                 }
