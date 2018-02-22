@@ -99,7 +99,7 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //find memory devision
-    int Nvertexes = min(V, floor((free / 2 - 16 * V)/(V+16))); // number of vertexes per one full-memory alocation
+    int Nvertexes = min(V, int(floor((free / 2 - 16 * V)/(V+16)))); // number of vertexes per one full-memory alocation
 
     //job for GPU (indexes of vertexes to process)
     int* job;
@@ -134,6 +134,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
         //repeat until find solition
     /*debug*/// int D = 0;
+        int N;
         while (!done){
             //sort job list and count amount of job
             N = 0;
@@ -190,7 +191,7 @@ void GraphColoringGPU(const char filename[], int** color){
             nblocks = ceil(float(N)/nthreads);
             KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, job);
             //sync CUDA and CPU
-            synced = cudaDeviceSynchronize();
+            cudaError synced = cudaDeviceSynchronize();
                 if (synced != cudaSuccess){
                     std::cout << "FIND_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
                     exit(synced);
