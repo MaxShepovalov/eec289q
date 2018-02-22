@@ -165,10 +165,10 @@ void GraphColoringGPU(const char filename[], int** color){
                 if (job[j] != -1) N++;
             }
     
-    /*debug*/// for (int a=0; a<V; a++)
-    /*debug*///     if (job[a]!=-1)
-    /*debug*///         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
-    /*debug*///     else std::cout << "    job " << a << ": " << job[a] << "\n";
+    /*debug*/ for (int a=0; a<V; a++)
+    /*debug*/     if (job[a]!=-1)
+    /*debug*/         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
+    /*debug*/     else std::cout << "    job " << a << ": " << job[a] << "\n";
     
             //check colors nearby " << N << " verticies
             bool* near_colors;
