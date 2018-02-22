@@ -295,6 +295,11 @@ void GraphColoringGPU(const char filename[], int** color){
             
     
             if (N < 10) {
+                cudaError check_synced = cudaDeviceSynchronize();
+                if (check_synced != cudaSuccess){
+                    std::cout << "CHECK_DEBUG cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
+                    exit(check_synced);
+                }
     /*debug*/ for (int a=0; a<10; a++)
     /*debug*/     if (work[a]!=-1)
     /*debug*/         std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
