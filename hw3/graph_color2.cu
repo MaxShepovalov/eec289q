@@ -174,7 +174,9 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             //cannot put `else`, as if job[j] == -1, the array will be different at this point
             if (job[j] != -1) N++;
-/*debug*/ std::cout << "    job " << j << ": " << job[j] << " color: " << (*color)[job[j]] << "\n";
+/*debug*/ std::cout << "    job " << j << ": ";
+/*debug*/ std::cout << job[j] << " color: ";
+/*debug*/ std::cout << (*color)[job[j]] << "\n";
         }
 
 /*debug*/ std::cout << "//check colors nearby " << N << " vertexes\n";
