@@ -218,11 +218,14 @@ void GraphColoringGPU(const char filename[], int** color){
                     std::cout << "SEARCH_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(search_synced) << std::endl;
                     exit(search_synced);
                 }
-                int index = job[1] + V_start;
-                for (int clr = 1; clr < V; clr ++){
-                    if (!near_colors[clr]){
-                        (*color)[index] = clr;
-                        break;
+                for (int ji = 0; ji < Nv; ji++){
+                    if (job[ji]==-1) continue;
+                    int index = job[ji] + V_start;
+                    for (int clr = 1; clr < V; clr ++){
+                        if (!near_colors[clr]){
+                            (*color)[index] = clr;
+                            break;
+                        }
                     }
                 }
             }
@@ -281,12 +284,15 @@ void GraphColoringGPU(const char filename[], int** color){
                     std::cout << "CHECK_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
                     exit(check_synced);
                 }
-                int index = job[1] + V_start;
-                job[1] = -1;
-                for (int i = index + 1; i < V; i++) {
-                    if (graph_h[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
-                        job[1] = index - V_start;
-                        break;
+                for (int ji = 0; ji < Nv; ji++){
+                    if (job[ji]==-1) continue;
+                    int index = job[ji] + V_start;
+                    job[ji] = -1;
+                    for (int i = index + 1; i < V; i++) {
+                        if (graph_h[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
+                            job[ji] = index - V_start;
+                            break;
+                        }
                     }
                 }
             }
