@@ -99,9 +99,6 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //find memory devision
-    //size_t free, total;
-    cudaMemGetInfo(&free,&total); 
-    printf("\n  2:  GPU: %d KB free of total %d KB\n",free/1024,total/1024);
     //                                      VV leave 20MB free
     int Nvertexes = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of vertexes per one full-memory alocation
 
@@ -112,20 +109,11 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "JOB_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         }
-
-    //size_t free, total;
-    cudaMemGetInfo(&free,&total); 
-    printf("\n    3:   GPU: %d KB free of total %d KB\n",free/1024,total/1024);
-
     malloc_err = cudaMalloc(&graph_d, V * Nvertexes * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         }
-
-    //size_t free, total;
-    cudaMemGetInfo(&free,&total); 
-    printf("\n    4:   GPU: %d KB free of total %d KB\n",free/1024,total/1024);
 
     //SEGMENT graph_d FROM HERE
 ////////////////////////////////////////////
@@ -135,7 +123,7 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*/ printf("part from V %d with %d vertexes\n", V_start, Nv);
 
         //fill job
-        for (int i=V_start; i < Nv; i++){
+        for (int i = 0; i < Nv; i++){
             job[i] = i;
     /*debug*/// std::cout << "job " << i << " now is " << job[i] << "\n";
         }
@@ -171,12 +159,10 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*///     else std::cout << "    job " << a << ": " << job[a] << "\n";
     
             //check colors nearby " << N << " vertexes
-    /*debug*/ cudaMemGetInfo(&free,&total);
-    /*debug*/ printf("Allocate %d verticies (%d bytes) with %d free. for job with %d items\n", V*N, V*N*sizeof(bool), free, N);
             bool* near_colors;
             cudaError malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
                 if (malloc_err != cudaSuccess){
-                    std::cout << "NEAR_COLORS_1 cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+                    std::cout << "NEAR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
                     exit(malloc_err);
                 }
     
@@ -201,14 +187,14 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*/// }        
     
             //find colors
-    
             nthreads = min(512, N);
             nblocks = ceil(float(N)/nthreads);
+        printf("launching %d threads and %d blocks for %d jobs\n", nthreads, nblocks, N);
             KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, job);
             //sync CUDA and CPU
             cudaError synced = cudaDeviceSynchronize();
                 if (synced != cudaSuccess){
-                    std::cout << "FIND_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+                    std::cout << "SEARCH_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
                     exit(synced);
                 }
     
