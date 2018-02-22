@@ -72,6 +72,7 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
     for (int i = index_real + 1; i < V; i++) {
         if (graph[index * V + i] and colors[i]==colors[index_real]) {
             new_work_id = index;
+            printf("CHECK_FAIL work %d vertex local %d, vertex real %d, color %d matches color %d at vertex %d, repeat work\n", work_index, index, index_real, colors[index_real], colors[i], i);
             break;
         }
     }
