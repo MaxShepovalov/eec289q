@@ -44,6 +44,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     if (color_near_r != 0){
         output[work_index * V + color_near_r] = true;
     }
+    if (work_index < 3) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
 }
 
 //run search per each vertex
@@ -58,6 +59,7 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
                 break;
             }
         }
+        if (work_index < 3) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, color_near_r);
     }
 }
 
@@ -73,6 +75,7 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
             break;
         }
     }
+    if (work_index < 3) printf("CHECK work %d vertex local %d, vertex real %d, new work %d\n", work_index, index, index_real,new_work[work_index]);
 }
 
 __global__ void KernelBoolClear(bool* array, int size){
@@ -118,10 +121,10 @@ void GraphColoringGPU(const char filename[], int** color){
     //find memory devision
     //                                      VV leave 20MB free
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of verticies per one full-memory alocation
-/*debug*/// Nverticies = 18000;
+/*debug*/ Nverticies = 100;
     int Nparts = ceil(V/Nverticies);
 
-    //work for GPU (indexes of verticies to process)
+    //work for GPU (indicies of verticies to process)
     int* work;
     bool* near_colors;
     malloc_err = cudaMallocManaged(&work, Nverticies * sizeof(int));
@@ -170,6 +173,7 @@ void GraphColoringGPU(const char filename[], int** color){
             for (int j=0; j < Nv; j++){
                     if (work[j] != -1) {
                         if (j != N){
+                            printf("move work for vertex %d from %d to %d\n", work[j], j, N);
                             work[N] = work[j];
                             work[j] = -1;
                         }
@@ -292,16 +296,16 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             
     
-            if (N < 10) {
-                cudaError check_synced = cudaDeviceSynchronize();
-                if (check_synced != cudaSuccess){
-                    std::cout << "CHECK_DEBUG cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
-                    exit(check_synced);
-                }
-    /*debug*/ for (int a=0; a<Nverticies; a++)
-    /*debug*/     if (work[a]!=-1)
-    /*debug*/         std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
-    /*debug*/     //else std::cout << "    work " << a << ": " << work[a] << "\n";
+/*debug*/   if (N < 10) {
+/*debug*/       cudaError check_synced = cudaDeviceSynchronize();
+/*debug*/       if (check_synced != cudaSuccess){
+/*debug*/           std::cout << "CHECK_DEBUG cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
+/*debug*/           exit(check_synced);
+/*debug*/       }
+/*debug*/       for (int a=0; a<Nverticies; a++)
+/*debug*/           if (work[a]!=-1)
+/*debug*/               std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
+/*debug*/           //else std::cout << "    work " << a << ": " << work[a] << "\n";
             }
 
             cudaError synced = cudaDeviceSynchronize();
