@@ -59,7 +59,7 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
                 break;
             }
         }
-        if (work_index < 3) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, colors[index_real]);
+        if (work_index < 20) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, colors[index_real]);
     }
 }
 
@@ -75,7 +75,7 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
             break;
         }
     }
-    if (work_index < 3) printf("CHECK work %d vertex local %d, vertex real %d, new work %d\n", work_index, index, index_real,new_work[work_index]);
+    if (work_index < 20) printf("CHECK work %d vertex local %d, vertex real %d, new work %d\n", work_index, index, index_real,new_work[work_index]);
 }
 
 __global__ void KernelBoolClear(bool* array, int size){
@@ -296,7 +296,7 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             
     
-/*debug*/   if (N < 10) {
+/*debug*/   if (N < 20) {
 /*debug*/       cudaError check_synced = cudaDeviceSynchronize();
 /*debug*/       if (check_synced != cudaSuccess){
 /*debug*/           std::cout << "CHECK_DEBUG cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
