@@ -42,13 +42,15 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     }
 }
 
-__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int* job){
+__global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, int* job){
     int job_index = blockIdx.x * blockDim.x + threadIdx.x; //job index
-    int index = job[job_index];  //vertex index
-    for (int clr = 1; clr < V; clr ++){
-        if (!nearcolors[job_index * V + clr]){
-            colors[index] = clr;
-            break;
+    if (job_index < N){
+        int index = job[job_index];  //vertex index
+        for (int clr = 1; clr < V; clr ++){
+            if (!nearcolors[job_index * V + clr]){
+                colors[index] = clr;
+                break;
+            }
         }
     }
 }
@@ -190,7 +192,7 @@ void GraphColoringGPU(const char filename[], int** color){
             nthreads = min(512, N);
             nblocks = ceil(float(N)/nthreads);
         printf("launching %d threads and %d blocks for %d jobs\n", nthreads, nblocks, N);
-            KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, job);
+            KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, job);
             //sync CUDA and CPU
             cudaError synced = cudaDeviceSynchronize();
                 if (synced != cudaSuccess){
