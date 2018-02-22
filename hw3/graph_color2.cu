@@ -16,6 +16,8 @@
 #include <cstring>
 #include <math.h>
 
+//#define PRINTALL
+
 //file parsers from example
 void ReadColFile(const char filename[], bool** graph, int* V);
 void ReadMMFile(const char filename[], bool** graph, int* V);
@@ -342,9 +344,17 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //print result
-    for (int i = 0; i < V; i++) {
-        std::cout << i << " - color " << (*color)[i] << std::endl;
+#ifndef PRINTALL
+    if (V < 100){
+#endif
+        for (int i = 0; i < V; i++) {
+            std::cout << i << " - color " << (*color)[i] << std::endl;
+        }
+#ifndef PRINTALL
+    } else {
+        std::cout << "Too many verticies to print out, uncomment PRINTALL if need to print " << V << " verticies" << std::endl;
     }
+#endif
     std::cout << "Solution has " << num_colors << " colors" << std::endl;
     cudaFree(*color);
 }
