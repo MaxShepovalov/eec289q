@@ -22,59 +22,19 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-// __device__ int DeviceVertexProcess(bool* graph, int* colors, int Vsize, int V1, int V2){
-//     //graph - pointer on graph
-//     //colors - pointer on current selected colors
-//     //Vsize - amount of vertexes in graph
-//     //V1 - main vertex index
-//     //V2 - vertex index to compare with
-    
-//     //filtered color
-//     int out = 0;
-    
-//     //if vertexes are connected
-//     if (graph[V1 * V + V2]){
-//         out = colors[V2];
-//     }
-    
-//     //retrn result
-//     return out;
-// }
-
-
 //Kernel work with pairs of vertexes
 __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
-    //graph  - graph connections
-    //colors - currently selected colors
-    //V      - amount of vertexes
-    //job    - list of vertexes for processing
-
-
     int job_index = floorf(threadIdx.x/V); //primary vertex selector from job list
     int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
-    //int* colors = *colors_p; //dereference colors array
 
-/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
-/*debug*/// __syncthreads();
-/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d, color ptr %ld\n",threadIdx.x, job_index, index, near, graph[index * V + near], (long int)colors);
-/*debug*/// __syncthreads();
-/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index]);
-/*debug*/// __syncthreads();
-/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorNeib %d\n",threadIdx.x, job_index, index, near, colors[near]);
-/*debug*/// __syncthreads();
     //stage 1. scan neighbour
 
     //find color for neighbour
-    //int color_near_r = DeviceVertexProcess(graph, colors, V, V1, index);
     int color_near_r = 0;
     if (graph[index * V + near]){
         color_near_r = colors[near];
     }
-
-    //write color
-    //color_near[index] = color_near_r;
-    //__syncthreads();
 
     //stage 2. mark used colors
     if (color_near_r != 0){
@@ -93,14 +53,18 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int* job
     }
 }
 
-__global__ void KernelCheckColor(int* colors, bool* nearcolors, int V, int* job, int* new_job){
-    int job_index = threadIdx.x; //job index
-    int index = job[job_index];  //vertex index
-    if (nearcolors[index * V + colors[index]] or colors[index] == 0){
-        new_job[job_index] = index;
-    } else {
-        new_job[job_index] = -1;
+__global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int* new_job){
+    int job_index = floorf(threadIdx.x/V); //primary vertex selector from job list
+    int near  = threadIdx.x % V;           //neighbor vertex index         (col of graph)
+    int index = job[job_index];            //primary vertex index;
+    if (graph[index * V + near]){
+        if (colors[near] == colors[index] and near > index){
+            new_job[job_index] = index;
+        }
     }
+    //else {
+    //    new_job[job_index] = -1;
+    //}
 }
 
 void GraphColoringGPU(const char filename[], int** color){
@@ -243,8 +207,11 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "//update job\n";
         int* new_job;
         cudaMallocManaged(&new_job, V * sizeof(bool));
-        //int* old_job = job;
-        KernelCheckColor<<<1 ,N>>>(*color, near_colors, V, job, new_job);
+        for (int j=0; j < V; v++){
+            new_job[j] = -1;
+        }
+
+        KernelCheckColor<<<1 , V*N>>>(graph, *color, V, job, new_job);
         //sync CUDA and CPU
         synced = cudaDeviceSynchronize();
         if (synced != cudaSuccess){
