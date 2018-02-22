@@ -223,7 +223,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 for (int clr = 1; clr < V; clr ++){
                     printf("3 at loop %d\n",clr);
                     if (!near_colors[clr]){
-                        printf("4 at loop %d in if \n",clr);
+                        printf("4 at loop %d in if for index %d\n",clr,index);
                         (*color)[index] = clr;
                         break;
                     }
