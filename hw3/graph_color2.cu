@@ -219,7 +219,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 }
 
                 for(int i=0; i<Nv; i++){
-                    printf("job #%d - %d\n",i,job[i])
+                    printf("job #%d - %d\n",i,job[i]);
                 }
 
                 int index = job[0] + V_start;
