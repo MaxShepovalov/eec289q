@@ -303,12 +303,13 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/           exit(check_synced);
 /*debug*/       }
 /*debug*/       for (int a=0; a<Nverticies; a++)
-/*debug*/           if (work[a]!=-1)
+/*debug*/           if (work[a]!=-1){
 /*debug*/               std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << " near:";
                         for (int c=0; c < V; c++){
                             std::cout << (int)near_colors[work[a] * V + c];
                         }
                         std::cout << "\n";
+                    }
 /*debug*/           //else std::cout << "    work " << a << ": " << work[a] << "\n";
             }
 
