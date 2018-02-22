@@ -177,7 +177,8 @@ void GraphColoringGPU(const char filename[], int** color){
                     }
             }
             D++;
-            printf("====while loop %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
+            printf("====while loop, %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
+            if (N == 0) break;
     
     /*debug*/// for (int a=0; a<V; a++)
     /*debug*///     if (work[a]!=-1)
