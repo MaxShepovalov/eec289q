@@ -99,7 +99,7 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //find memory devision
-    int Nvertexes = min(V, int(floor((free / 2 - 16 * V)/(V+16)))); // number of vertexes per one full-memory alocation
+    int Nvertexes = min(V, int(floor((free - 4 * V)/(2*V + 4)))); // number of vertexes per one full-memory alocation
 
     //job for GPU (indexes of vertexes to process)
     int* job;
@@ -159,7 +159,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
             //check colors nearby " << N << " vertexes
     /*debug*/ cudaMemGetInfo(&free,&total);
-    /*debug*/ printf("Allocate %d verticies (%d bytes) with %d free. for job with %d items\n", V*N, V*N*sizeof(bool)/8, free, N);
+    /*debug*/ printf("Allocate %d verticies (%d bytes) with %d free. for job with %d items\n", V*N, V*N*sizeof(bool), free, N);
             bool* near_colors;
             cudaError malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
                 if (malloc_err != cudaSuccess){
