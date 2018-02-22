@@ -42,7 +42,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 
     //stage 2. mark used colors
     if (color_near_r != 0){
-        output[work_index * V + color_near_r] = true;
+        output[index * V + color_near_r] = true;
     }
 /*debug*/if (work_index == 0) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
 }
