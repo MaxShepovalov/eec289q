@@ -23,7 +23,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 //run neighbor color for each pairs of verticies
-__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job, int job_offset){
+__global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job){
     int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
     int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
     //int near_real = near + job_offset;
@@ -61,7 +61,8 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
 
 //run check per each vertex
 __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int* new_job, int job_offset){
-    int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
+    //int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
+    int job_index = blockIdx.x * blockDim.x + threadIdx.x; //job index
     //int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
     int index = job[job_index];            //primary vertex index;
     int index_real = index + job_offset;
