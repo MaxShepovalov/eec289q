@@ -119,6 +119,7 @@ void GraphColoringGPU(const char filename[], int** color){
     for (int V_start = 0; V_start < V; V_start += Nvertexes){
         //actual amount of vertexes that awailable for proccessing
         int Nv = min(Nvertexes, V - V_start);
+    /*debug*/ printf("part from V %d with %d vertexes\n", V_start, Nv);
 
         //fill job
         for (int i=V_start; i < Nv; i++){
