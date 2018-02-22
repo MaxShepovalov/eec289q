@@ -244,9 +244,10 @@ void GraphColoringGPU(const char filename[], int** color){
             //        exit(malloc_err);
             //    }
             printf("6\n");
-            for (int i=0; i < V*N; i++)
+            for (int i=0; i < V*N; i++){
                 printf("7 at loop %d\n",i);
                 near_colors[i] = false;
+            }
             printf("8\n");
     
             nthreads = min(512, V*N);
