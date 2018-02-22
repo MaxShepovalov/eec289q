@@ -240,6 +240,12 @@ void GraphColoringGPU(const char filename[], int** color){
             //        std::cout << "COLOR_NEARBY_CHECK cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             //        exit(synced);
             //    }
+            cudaError synced = cudaDeviceSynchronize();
+                if (synced != cudaSuccess){
+                    std::cout << "JOB_UPDATE cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
+                    exit(synced);
+                }
+            cudaFree(near_colors);
     
     /*debug*/// for (int r=0; r < N; r++){
     /*debug*///   printf("    near V %d: ",job[r]);
@@ -261,11 +267,6 @@ void GraphColoringGPU(const char filename[], int** color){
                 KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, job);
                 //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, new_job);
                 //sync CUDA and CPU
-                synced = cudaDeviceSynchronize();
-                    if (synced != cudaSuccess){
-                        std::cout << "JOB_UPDATE cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
-                        exit(synced);
-                    }
             } else {
             printf("  CHECK launching CPU for 1 item\n");
                 int index = job[0];
@@ -277,7 +278,7 @@ void GraphColoringGPU(const char filename[], int** color){
                     }
                 }
             }
-            cudaFree(near_colors);
+            
     
     /*debug*/// for (int a=0; a<V; a++)
     /*debug*///     if (new_job[a]!=-1)
