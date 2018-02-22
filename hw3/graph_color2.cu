@@ -237,7 +237,7 @@ void GraphColoringGPU(const char filename[], int** color){
                     if (work[ji]==-1) continue;
                     int index = work[ji] + V_start;
                     for (int clr = 1; clr < V; clr ++){
-                        if (!near_colors[clr]){
+                        if (!near_colors[work[ji] * V + clr]){
                             (*color)[index] = clr;
                             break;
                         }
@@ -289,7 +289,7 @@ void GraphColoringGPU(const char filename[], int** color){
                     int index = work[ji] + V_start;
                     work[ji] = -1;
                     for (int i = index + 1; i < V; i++) {
-                        if (graph_h[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
+                        if (graph_h[index * V + i] and (*color)[i]==(*color)[index]) {
                             work[ji] = index - V_start;
                             break;
                         }
