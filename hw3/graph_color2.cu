@@ -266,7 +266,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ std::cout << "//check if done\n";
         done = true;
         for(int i=0; i < V; i++){
-            if (job[i] == -1){
+            if (job[i] != -1){
 /*debug*/       printf("Need to work more\n");
                 done = false;
                 break;
