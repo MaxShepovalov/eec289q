@@ -165,10 +165,10 @@ void GraphColoringGPU(const char filename[], int** color){
                 if (job[j] != -1) N++;
             }
     
-    /*debug*/ for (int a=0; a<V; a++)
-    /*debug*/     if (job[a]!=-1)
-    /*debug*/         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
-    /*debug*/     else std::cout << "    job " << a << ": " << job[a] << "\n";
+    /*debug*/// for (int a=0; a<V; a++)
+    /*debug*///     if (job[a]!=-1)
+    /*debug*///         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
+    /*debug*///     else std::cout << "    job " << a << ": " << job[a] << "\n";
     
             //check colors nearby " << N << " verticies
             bool* near_colors;
@@ -183,7 +183,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
             int nthreads = min(512, V*N);
             int nblocks = ceil(float(V*N)/nthreads);
-        printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
+/*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
             KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
             //sync CUDA and CPU
             //cudaError synced = cudaDeviceSynchronize();
@@ -203,7 +203,7 @@ void GraphColoringGPU(const char filename[], int** color){
             if (N != 1) {
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
-            printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
+    /*debug info*/printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
                 KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, job, V_start);
                 //sync CUDA and CPU
                 cudaError synced = cudaDeviceSynchronize();
@@ -212,7 +212,7 @@ void GraphColoringGPU(const char filename[], int** color){
                         exit(synced);
                     }
             } else {
-            printf("  SEARCH launching CPU for 1 item\n");
+    /*debug info*/printf("  SEARCH launching CPU for 1 item\n");
                 cudaError search_synced = cudaDeviceSynchronize();
                 if (search_synced != cudaSuccess){
                     std::cout << "SEARCH_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(search_synced) << std::endl;
@@ -248,7 +248,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
-        printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
+/*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
             KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
             //sync CUDA and CPU
             //synced = cudaDeviceSynchronize();
@@ -273,12 +273,12 @@ void GraphColoringGPU(const char filename[], int** color){
             if (N != 1) {
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
-            printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
+    /*debug info*/printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
                 KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, job, V_start);
                 //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, new_job);
                 //sync CUDA and CPU
             } else {
-            printf("  CHECK launching CPU for 1 item\n");
+    /*debug info*/printf("  CHECK launching CPU for 1 item\n");
                 cudaError check_synced = cudaDeviceSynchronize();
                 if (check_synced != cudaSuccess){
                     std::cout << "CHECK_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
