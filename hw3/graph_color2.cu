@@ -44,7 +44,6 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     if (color_near_r != 0){
         output[index * V + color_near_r] = true;
     }
-/*debug*/if (work_index == 0) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
 }
 
 //run search per each vertex
@@ -59,7 +58,6 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
                 break;
             }
         }
-        if (work_index == 0) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, colors[index_real]);
     }
 }
 
@@ -72,11 +70,9 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int
     for (int i = index_real + 1; i < V; i++) {
         if (graph[index * V + i] and colors[i]==colors[index_real]) {
             new_work_id = index;
-            if (work_index == 0) printf("CHECK_FAIL work %d vertex local %d, vertex real %d, color %d matches color %d at vertex %d, repeat work\n", work_index, index, index_real, colors[index_real], colors[i], i);
             break;
         }
     }
-    if (work_index == 0) printf("CHECK work %d vertex local %d, vertex real %d, color %d, new work %d\n", work_index, index, index_real, colors[index_real], new_work_id);
     new_work[work_index] = new_work_id;
 }
 
@@ -95,13 +91,19 @@ void GraphColoringGPU(const char filename[], int** color){
     bool* graph_d; //graph matrix on device
 
     //read graph file
+    int file_error = 0;
     if (std::string(filename).find(".col") != std::string::npos)
-        ReadColFile(filename, &graph_h, &V);
+        file_error = ReadColFile(filename, &graph_h, &V);
     else if (std::string(filename).find(".mm") != std::string::npos) 
-        ReadMMFile(filename, &graph_h, &V);
+        file_error = ReadMMFile(filename, &graph_h, &V);
     else {
         //exit now, if cannot parse the file
         std::cout << "Cannot parse the file\n";
+        return;
+    }
+
+    if (file_error!=0){
+        std::cout << "File error\n";
         return;
     }
 
@@ -123,7 +125,6 @@ void GraphColoringGPU(const char filename[], int** color){
     //find memory devision
     //                                      VV leave 20MB free
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of verticies per one full-memory alocation
-/*debug*/ Nverticies = 100;
     int Nparts = ceil(V/Nverticies);
 
     //work for GPU (indicies of verticies to process)
@@ -175,7 +176,6 @@ void GraphColoringGPU(const char filename[], int** color){
             for (int j=0; j < Nv; j++){
                     if (work[j] != -1) {
                         if (j != N){
-                            printf("move work for vertex %d from %d to %d\n", work[j], j, N);
                             work[N] = work[j];
                             work[j] = -1;
                         }
@@ -183,14 +183,8 @@ void GraphColoringGPU(const char filename[], int** color){
                     }
             }
             D++;
-            printf("====while loop, %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
+/*loop info*/printf("====while loop, %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
             if (N == 0) break;
-    
-    /*debug*/// for (int a=0; a<V; a++)
-    /*debug*///     if (work[a]!=-1)
-    /*debug*///         std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
-    /*debug*///     else std::cout << "    work " << a << ": " << work[a] << "\n";
-    
 
             int nthreads = min(512, V*Nverticies);
             int nblocks = ceil(V * Nverticies / nthreads);
@@ -198,27 +192,14 @@ void GraphColoringGPU(const char filename[], int** color){
 
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
-/*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
-            //sync CUDA and CPU
-            //cudaError synced = cudaDeviceSynchronize();
-            //    if (synced != cudaSuccess){
-            //        std::cout << "COLOR_NEARBY cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
-            //        exit(synced);
-            //    }
-    
-    /*debug*/// for (int r=0; r < N; r++){
-    /*debug*///   printf("    near V %d: ",work[r]);
-    /*debug*///   for (int c=0; c < V; c++)
-    /*debug*///     printf(" %d",near_colors[r*V+c]);
-    /*debug*///   printf("\n");
-    /*debug*/// }        
+/*debug info*///printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);      
     
             //find colors
             if (N != 1) {
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
-    /*debug info*/printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
+    /*debug info*///printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
                 KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, work, V_start);
                 //sync CUDA and CPU
                 cudaError synced = cudaDeviceSynchronize();
@@ -227,7 +208,7 @@ void GraphColoringGPU(const char filename[], int** color){
                         exit(synced);
                     }
             } else {
-    /*debug info*/printf("  SEARCH launching CPU for 1 item\n");
+    /*debug info*///printf("  SEARCH launching CPU for 1 item\n");
                 cudaError search_synced = cudaDeviceSynchronize();
                 if (search_synced != cudaSuccess){
                     std::cout << "SEARCH_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(search_synced) << std::endl;
@@ -244,41 +225,15 @@ void GraphColoringGPU(const char filename[], int** color){
                     }
                 }
             }
-    
-    /*debug*/// for (int c=0; c<V; c++){
-    /*debug*///     printf("    V %d - color %d\n", c, (*color)[c]);
-    /*debug*/// }
-
-//            nthreads = min(512, V*Nverticies);
-//            nblocks = ceil(V * Nverticies / nthreads);
-//            KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
-//    
-//            nthreads = min(512, V*N);
-//            nblocks = ceil(float(V*N)/nthreads);
-///*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-//            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
-            //sync CUDA and CPU
-            //synced = cudaDeviceSynchronize();
-            //    if (synced != cudaSuccess){
-            //        std::cout << "COLOR_NEARBY_CHECK cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
-            //        exit(synced);
-            //    }
-    
-    /*debug*/// for (int r=0; r < N; r++){
-    /*debug*///   printf("    near V %d: ",work[r]);
-    /*debug*///   for (int c=0; c < V; c++)
-    /*debug*///     printf(" %d",near_colors[r*V+c]);
-    /*debug*///   printf("\n");
-    /*debug*/// }
 
             if (N != 1) {
                 nthreads = min(512, Nverticies);
                 nblocks = ceil(float(Nverticies)/nthreads);
-    /*debug info*/printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
+    /*debug info*///printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
                 KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, work, V_start);
                 //sync CUDA and CPU
             } else {
-    /*debug info*/printf("  CHECK launching CPU for 1 item\n");
+    /*debug info*///printf("  CHECK launching CPU for 1 item\n");
                 cudaError check_synced = cudaDeviceSynchronize();
                 if (check_synced != cudaSuccess){
                     std::cout << "CHECK_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
@@ -295,24 +250,6 @@ void GraphColoringGPU(const char filename[], int** color){
                         }
                     }
                 }
-            }
-            
-    
-/*debug*/   if (N < 20) {
-/*debug*/       cudaError check_synced = cudaDeviceSynchronize();
-/*debug*/       if (check_synced != cudaSuccess){
-/*debug*/           std::cout << "CHECK_DEBUG cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
-/*debug*/           exit(check_synced);
-/*debug*/       }
-/*debug*/       for (int a=0; a<Nverticies; a++)
-/*debug*/           if (work[a]!=-1){
-/*debug*/               std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << " near:";
-                        for (int c=0; c < V; c++){
-                            std::cout << (int)near_colors[work[a] * V + c];
-                        }
-                        std::cout << "\n";
-                    }
-/*debug*/           //else std::cout << "    work " << a << ": " << work[a] << "\n";
             }
 
             cudaError synced = cudaDeviceSynchronize();
@@ -387,13 +324,13 @@ int main(int argc, char const **argv)
 /////////////////////////////////////////////////////////////////////////////////////
 // Read MatrixMarket graphs
 // Assumes input nodes are numbered starting from 1
-void ReadMMFile(const char filename[], bool** graph, int* V) 
+int ReadMMFile(const char filename[], bool** graph, int* V) 
 {
    std::string line;
    std::ifstream infile(filename);
    if (infile.fail()) {
       printf("Failed to open %s\n", filename);
-      return;
+      return -1;
    }
 
    // Reading comments
@@ -428,13 +365,13 @@ void ReadMMFile(const char filename[], bool** graph, int* V)
 
 // Read DIMACS graphs
 // Assumes input nodes are numbered starting from 1
-void ReadColFile(const char filename[], bool** graph, int* V) 
+int ReadColFile(const char filename[], bool** graph, int* V) 
 {
    std::string line;
    std::ifstream infile(filename);
    if (infile.fail()) {
       printf("Failed to open %s\n", filename);
-      return;
+      return -1;
    }
 
    int num_rows, num_edges;
