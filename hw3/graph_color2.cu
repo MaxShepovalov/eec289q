@@ -61,12 +61,9 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
 
 //run check per each vertex
 __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int* new_work, int work_offset){
-    //int work_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from work list
-    int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index
-    //int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
+    int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index           //neighbor vertex index         (col of graph)
     int index = work[work_index];            //primary vertex index;
     int index_real = index + work_offset;
-    //need scatter to gather
     new_work[work_index] = -1; //default value
     for (int i = index + 1; i < V; i++) {
         if (graph[index * V + i] and colors[i + work_offset]==colors[index_real]) {
@@ -167,17 +164,25 @@ void GraphColoringGPU(const char filename[], int** color){
 
 /**/            //sort work list and count amount of work
 /**/            N = 0;
+                //int carry = 0;
 /**/            for (int j=0; j < Nv; j++){
-/**/                if (work[j] == -1){
-/**/                    for(int jj=j; jj < V; jj++){
-/**/                        if (work[jj]!=-1){
-/**/                            work[jj-1] = work[jj];
-/**/                            work[jj] = -1;
-/**/                        }
-/**/                    }
-/**/                }
-/**/                //cannot put `else`, as if work[j] == -1, the array will be different at this point
-/**/                if (work[j] != -1) N++;
+                    if (work[j] != -1) {
+                        if (j != N){
+                            work[N] = work[j];
+                            work[j] = -1;
+                        }
+                        N++;
+                    }
+/**/                //if (work[j] == -1){
+/**/                //    for(int jj=j; jj < V; jj++){
+/**/                //        if (work[jj]!=-1){
+/**/                //            work[jj-1] = work[jj];
+/**/                //            work[jj] = -1;
+/**/                //        }
+/**/                //    }
+/**/                //}
+/**/                ////cannot put `else`, as if work[j] == -1, the array will be different at this point
+/**/                //if (work[j] != -1) N++;
 /**/            }
             D++;
             printf("====while loop %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
