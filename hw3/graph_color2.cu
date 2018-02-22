@@ -149,7 +149,6 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*/// int D = 0;
         int N;
         while (!done){
-            printf("====while loop\n");
             //sort job list and count amount of job
             N = 0;
             for (int j=0; j < Nv; j++){
@@ -164,6 +163,10 @@ void GraphColoringGPU(const char filename[], int** color){
                 //cannot put `else`, as if job[j] == -1, the array will be different at this point
                 if (job[j] != -1) N++;
             }
+
+            printf("====while loop %d verticies need processing\n");
+            //test
+            N = Nv;
     
     /*debug*/// for (int a=0; a<V; a++)
     /*debug*///     if (job[a]!=-1)
