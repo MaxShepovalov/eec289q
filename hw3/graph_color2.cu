@@ -44,7 +44,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     if (color_near_r != 0){
         output[work_index * V + color_near_r] = true;
     }
-    if (work_index < 3) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
+/*debug*///if (work_index < 3) printf("NEIBOUR work %d vertex %d with %d, color %d\n", work_index,index, near, color_near_r);
 }
 
 //run search per each vertex
