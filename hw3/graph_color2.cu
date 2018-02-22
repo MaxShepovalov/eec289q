@@ -59,7 +59,7 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
                 break;
             }
         }
-        if (work_index < 3) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, color_near_r);
+        if (work_index < 3) printf("SEARCH work %d vertex local %d, vertex real %d, color %d\n", work_index, index, index_real, colors[index_real]);
     }
 }
 
