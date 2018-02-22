@@ -102,6 +102,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //                                      VV leave 20MB free
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of verticies per one full-memory alocation
     int Nparts = ceil(V/Nverticies); // number of parts
+    printf("chose Nverticies = %d\n", Nverticies);
 
     bool* graph_d; //graph matrix on device
     bool* near_colors;
