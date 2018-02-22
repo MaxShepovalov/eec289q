@@ -123,7 +123,7 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         };
-    malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+    malloc_err = cudaMallocManaged(&near_colors, V * Nverticies * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "NEAR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
