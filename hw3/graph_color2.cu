@@ -126,10 +126,10 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "COLOR_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         } else {
-            std::cout << "COLOR_MALLOC OK";
+            std::cout << "COLOR_MALLOC OK\n";
         }
     for (int i=0; i < V; i++){
-        color[i] = 0;
+        (*color)[i] = 0;
     }
 
     //move graph to device memory
@@ -138,7 +138,7 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "GRAPH_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         } else {
-            std::cout << "GRAPH_MALLOC OK";
+            std::cout << "GRAPH_MALLOC OK\n";
         }
     cudaMemcpy(graph_d, graph_h, V * V * sizeof(bool), cudaMemcpyHostToDevice);
     
@@ -149,7 +149,7 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "JOB_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         } else {
-            std::cout << "JOB_MALLOC OK";
+            std::cout << "JOB_MALLOC OK\n";
         }
     //fill job
     for (int i=0; i < V; i++){
@@ -174,7 +174,7 @@ void GraphColoringGPU(const char filename[], int** color){
             }
             //cannot put `else`, as if job[j] == -1, the array will be different at this point
             if (job[j] != -1) N++;
-/*debug*/ std::cout << "    job " << j << ": " << job[j] << " color: " << color[job[j]] << "\n";
+/*debug*/ std::cout << "    job " << j << ": " << job[j] << " color: " << (*color)[job[j]] << "\n";
         }
 
 /*debug*/ std::cout << "//check colors nearby " << N << " vertexes\n";
