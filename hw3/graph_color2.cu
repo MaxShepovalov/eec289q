@@ -85,7 +85,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int* job){
     int job_index = threadIdx.x; //job index
     int index = job[job_index];  //vertex index
-    for (int clr = 0; clr < V; clr ++){
+    for (int clr = 1; clr < V; clr ++){
         if (!nearcolors[job_index * V + clr]){
             colors[index] = clr;
             break;
@@ -198,7 +198,7 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/ for (int r=0; r < N; r++){
 /**/        printf("near V %d: ",job[r]);
 /**/        for (int c=0; c < V; c++)
-/**/          printf("%d",near_colors[r*V+c]);
+/**/          printf(" %d",near_colors[r*V+c]);
 /**/        printf("\n");
 /**/      }        
 
@@ -251,6 +251,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 break;
             }
         }
+        break;
     }
     cudaFree(job);
 
