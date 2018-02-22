@@ -183,7 +183,7 @@ void GraphColoringGPU(const char filename[], int** color){
             int nthreads = min(512, V*N);
             int nblocks = ceil(float(V*N)/nthreads);
         printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job, V_start);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
             //sync CUDA and CPU
             //cudaError synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
@@ -240,7 +240,7 @@ void GraphColoringGPU(const char filename[], int** color){
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
         printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job, V_start);
+            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
             //sync CUDA and CPU
             //synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
