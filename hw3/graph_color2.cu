@@ -55,14 +55,14 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     int index = job[job_index];            //primary vertex index;
     //int* colors = *colors_p; //dereference colors array
 
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
-/*debug*/ __syncthreads();
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d, color ptr %ld\n",threadIdx.x, job_index, index, near, graph[index * V + near], (long int)colors);
-/*debug*/ __syncthreads();
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index]);
-/*debug*/ __syncthreads();
-/*debug*/ printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorNeib %d\n",threadIdx.x, job_index, index, near, colors[near]);
-/*debug*/ __syncthreads();
+/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. setup done\n",threadIdx.x, job_index, index, near);
+/*debug*/// __syncthreads();
+/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. graph %d, color ptr %ld\n",threadIdx.x, job_index, index, near, graph[index * V + near], (long int)colors);
+/*debug*/// __syncthreads();
+/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorV %d\n",threadIdx.x, job_index, index, near, colors[index]);
+/*debug*/// __syncthreads();
+/*debug*/// printf("NEIBCOLOR THREAD %d, Job %d, V %d neib %d. colorNeib %d\n",threadIdx.x, job_index, index, near, colors[near]);
+/*debug*/// __syncthreads();
     //stage 1. scan neighbour
 
     //find color for neighbour
@@ -178,7 +178,7 @@ void GraphColoringGPU(const char filename[], int** color){
         }
 
 /*debug*/ for (int a=0; a<V; a++)
-/*debug*/   std::cout << "    job " << a << ": " << job[a] << " color: \n" << (*color)[job[a]] << "\n";
+/*debug*/   std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
 
 /*debug*/ std::cout << "//check colors nearby " << N << " vertexes\n";
 
