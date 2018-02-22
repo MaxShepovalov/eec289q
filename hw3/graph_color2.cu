@@ -281,11 +281,11 @@ void GraphColoringGPU(const char filename[], int** color){
                     std::cout << "CHECK_with_CPU cuda sync ERROR happened: " << cudaGetErrorName(check_synced) << std::endl;
                     exit(check_synced);
                 }
-                int index = job[0] + V_start;
-                job[0] = -1;
+                int index = job[1] + V_start;
+                job[1] = -1;
                 for (int i = index + 1; i < V; i++) {
                     if (graph_h[index * V + i] and (*color)[i + V_start]==(*color)[index]) {
-                        job[0] = index - V_start;
+                        job[1] = index - V_start;
                         break;
                     }
                 }
