@@ -19,8 +19,8 @@
 //#define PRINTALL
 
 //file parsers from example
-void ReadColFile(const char filename[], bool** graph, int* V);
-void ReadMMFile(const char filename[], bool** graph, int* V);
+int ReadColFile(const char filename[], bool** graph, int* V);
+int ReadMMFile(const char filename[], bool** graph, int* V);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
