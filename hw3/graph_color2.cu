@@ -26,7 +26,7 @@ void ReadMMFile(const char filename[], bool** graph, int* V);
 __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* job, int job_offset){
     int job_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from job list
     int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
-    int near_real = near + job_offset;
+    //int near_real = near + job_offset;
     int index = job[job_index];            //primary vertex index;
     //int index_real = index + job_offset;
 
@@ -35,7 +35,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
     //find color for neighbour
     int color_near_r = 0;
     if (graph[index * V + near]){
-        color_near_r = colors[near_real];
+        color_near_r = colors[near];
     }
 
     //stage 2. mark used colors
