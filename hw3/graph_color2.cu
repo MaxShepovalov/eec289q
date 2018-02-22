@@ -116,7 +116,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //find memory devision
     //                                      VV leave 20MB free
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of verticies per one full-memory alocation
-/*debug*/ Nverticies = 18000;
+/*debug*/// Nverticies = 18000;
     int Nparts = ceil(V/Nverticies);
 
     //work for GPU (indexes of verticies to process)
