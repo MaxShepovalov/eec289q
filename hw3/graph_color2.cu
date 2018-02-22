@@ -62,9 +62,6 @@ __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* job, int*
             new_job[job_index] = index;
         }
     }
-    //else {
-    //    new_job[job_index] = -1;
-    //}
 }
 
 void GraphColoringGPU(const char filename[], int** color){
@@ -117,16 +114,16 @@ void GraphColoringGPU(const char filename[], int** color){
     //fill job
     for (int i=0; i < V; i++){
         job[i] = i;
-/*debug*/ std::cout << "job " << i << " now is " << job[i] << "\n";
+/*debug*/// std::cout << "job " << i << " now is " << job[i] << "\n";
     }
     bool done = false;
     
     //start kernel
 
     //repeat until find solition
-/*debug*/ int D = 0;
+/*debug*/// int D = 0;
     while (!done){
-/*debug*/ std::cout << "///////////////////////////////////////\n//sort job list and count amount of job\n";
+        //sort job list and count amount of job
         int N = 0;
         for (int j=0; j < V; j++){
             if (job[j] == -1){
@@ -141,12 +138,12 @@ void GraphColoringGPU(const char filename[], int** color){
             if (job[j] != -1) N++;
         }
 
-/*debug*/ for (int a=0; a<V; a++)
-/*debug*/     if (job[a]!=-1)
-/*debug*/         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
-/*debug*/     else std::cout << "    job " << a << ": " << job[a] << "\n";
+/*debug*/// for (int a=0; a<V; a++)
+/*debug*///     if (job[a]!=-1)
+/*debug*///         std::cout << "    job " << a << ": " << job[a] << " color: " << (*color)[job[a]] << "\n";
+/*debug*///     else std::cout << "    job " << a << ": " << job[a] << "\n";
 
-/*debug*/ std::cout << "//check colors nearby " << N << " vertexes\n";
+        //check colors nearby " << N << " vertexes
 
         bool* near_colors;
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
@@ -161,14 +158,14 @@ void GraphColoringGPU(const char filename[], int** color){
             exit(synced);
         }
 
-/*debug*/ for (int r=0; r < N; r++){
-/*debug*/   printf("    near V %d: ",job[r]);
-/*debug*/   for (int c=0; c < V; c++)
-/*debug*/     printf(" %d",near_colors[r*V+c]);
-/*debug*/   printf("\n");
-/*debug*/ }        
+/*debug*/// for (int r=0; r < N; r++){
+/*debug*///   printf("    near V %d: ",job[r]);
+/*debug*///   for (int c=0; c < V; c++)
+/*debug*///     printf(" %d",near_colors[r*V+c]);
+/*debug*///   printf("\n");
+/*debug*/// }        
 
-/*debug*/ std::cout << "//find colors\n";
+        //find colors
 
         KernelSearchColor<<<1, N>>>(*color, near_colors, V, job);
         //sync CUDA and CPU
@@ -179,11 +176,11 @@ void GraphColoringGPU(const char filename[], int** color){
         }
         cudaFree(near_colors);
 
-/*debug*/ for (int c=0; c<V; c++){
-/*debug*/     printf("    V %d - color %d\n", c, (*color)[c]);
-/*debug*/ }
+/*debug*/// for (int c=0; c<V; c++){
+/*debug*///     printf("    V %d - color %d\n", c, (*color)[c]);
+/*debug*/// }
         
-/*debug*/ std::cout << "//check if need to work again (update `near_colors`)\n";
+        //check if need to work again (update `near_colors`)
         cudaMallocManaged(&near_colors, V * N * sizeof(bool));
         for (int i=0; i < V*N; i++)
             near_colors[i] = false;
@@ -196,14 +193,14 @@ void GraphColoringGPU(const char filename[], int** color){
             exit(synced);
         }
 
-/*debug*/ for (int r=0; r < N; r++){
-/*debug*/   printf("    near V %d: ",job[r]);
-/*debug*/   for (int c=0; c < V; c++)
-/*debug*/     printf(" %d",near_colors[r*V+c]);
-/*debug*/   printf("\n");
-/*debug*/ }
+/*debug*/// for (int r=0; r < N; r++){
+/*debug*///   printf("    near V %d: ",job[r]);
+/*debug*///   for (int c=0; c < V; c++)
+/*debug*///     printf(" %d",near_colors[r*V+c]);
+/*debug*///   printf("\n");
+/*debug*/// }
 
-/*debug*/ std::cout << "//update job\n";
+        //update job
         int* new_job;
         cudaMallocManaged(&new_job, V * sizeof(bool));
         for (int j=0; j < V; j++){
@@ -219,21 +216,21 @@ void GraphColoringGPU(const char filename[], int** color){
         }
         cudaFree(near_colors);
 
-/*debug*/ for (int a=0; a<V; a++)
-/*debug*/     if (new_job[a]!=-1)
-/*debug*/         std::cout << "    new_job " << a << ": " << new_job[a] << " color: " << (*color)[new_job[a]] << "\n";
-/*debug*/     else std::cout << "    new_job " << a << ": " << new_job[a] << "\n";
+/*debug*/// for (int a=0; a<V; a++)
+/*debug*///     if (new_job[a]!=-1)
+/*debug*///         std::cout << "    new_job " << a << ": " << new_job[a] << " color: " << (*color)[new_job[a]] << "\n";
+/*debug*///     else std::cout << "    new_job " << a << ": " << new_job[a] << "\n";
         
-/*debug*/ std::cout << "//swap job lists\n";
+        //swap job lists
         //cudaFree(old_job);
         cudaFree(job);
         job = new_job;
 
-/*debug*/ std::cout << "//check if done\n";
+        //check if done
         done = true;
         for(int i=0; i < V; i++){
             if (job[i] != -1){
-/*debug*/       printf("Need to work more\n");
+/*debug*///       printf("Need to work more\n");
                 done = false;
                 break;
             }
@@ -357,57 +354,3 @@ void ReadColFile(const char filename[], bool** graph, int* V)
    }
    infile.close();
 }
-
-
-// __global__ void GraphKernel(bool* graph, int* color, int V) {
-//     int index = blockIdx.x * blockDim.x + threadIdx.x; //thread ID
-// //    int stride = blockDim.x * gridDim.x;               //
-//     //each thread works with only one vertex
-
-//     //shared memory for final colors
-//     extern __shared__ int color_sh[];
-//     color_sh[index] = 0;
-//     __syncthreads();
-
-//     //decide the color
-//     for (int attempt = 0; attempt < V; attempt++) {
-
-//         //scan colors of neighbours
-//         bool* near = new bool[V+1];
-//         for (int i = 0; i < V; i++) near[i] = false;
-
-//         for (int i = 0; i < V; i++) {
-//             if (graph[index * V + i] and i != index) {
-//                 //near.insert(color_sh[i]);
-//                 near[color_sh[i]] = true;
-//             }
-//         }
-
-//         //select color
-//         for (int color_i = 1; color_i < V; color_i++) {
-//             if (!near[color_i]) {
-//                 color_sh[index] = color_i;
-//                 break;
-//             }
-//         }
-
-//         //wait for others
-//         __syncthreads();
-        
-//         //check if there is a mistake
-//         bool done = true;
-//         for (int i = index + 1; i < V; i++) {
-//             if (graph[index * V + i] and color_sh[i]==color_sh[index]) {
-//                 done = false;
-//                 break;
-//             }
-//         }
-//         if (done) {
-//             //exit loop
-//             break;
-//         }
-//     }
-//
-//     //write out result
-//     color[index] = color_sh[index];
-// }
