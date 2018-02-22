@@ -158,7 +158,8 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*///     else std::cout << "    job " << a << ": " << job[a] << "\n";
     
             //check colors nearby " << N << " vertexes
-    
+    /*debug*/ cudaMemGetInfo(&free,&total);
+    /*debug*/ printf("Allocate %d verticies (%d bytes) with %d free. for job with %d items\n", V*N, V*N*sizeof(bool)/8, free, N);
             bool* near_colors;
             cudaError malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
                 if (malloc_err != cudaSuccess){
