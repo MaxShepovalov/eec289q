@@ -247,14 +247,14 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*///     printf("    V %d - color %d\n", c, (*color)[c]);
     /*debug*/// }
 
-            nthreads = min(512, V*Nverticies);
-            nblocks = ceil(V * Nverticies / nthreads);
-            KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
-    
-            nthreads = min(512, V*N);
-            nblocks = ceil(float(V*N)/nthreads);
-/*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
-            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
+//            nthreads = min(512, V*Nverticies);
+//            nblocks = ceil(V * Nverticies / nthreads);
+//            KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
+//    
+//            nthreads = min(512, V*N);
+//            nblocks = ceil(float(V*N)/nthreads);
+///*debug info*/printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
+//            KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);
             //sync CUDA and CPU
             //synced = cudaDeviceSynchronize();
             //    if (synced != cudaSuccess){
@@ -304,7 +304,11 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/       }
 /*debug*/       for (int a=0; a<Nverticies; a++)
 /*debug*/           if (work[a]!=-1)
-/*debug*/               std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << "\n";
+/*debug*/               std::cout << "    work " << a << ": " << work[a] << " color: " << (*color)[work[a]] << " near:";
+                        for (int c=0; c < V; c++){
+                            std::cout << (int)near_colors[work[a] * V + c];
+                        }
+                        std::cout << "\n";
 /*debug*/           //else std::cout << "    work " << a << ": " << work[a] << "\n";
             }
 
