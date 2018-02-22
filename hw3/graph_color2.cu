@@ -162,10 +162,10 @@ void GraphColoringGPU(const char filename[], int** color){
         int D = 0;
         while (!done){
 
-/**/            //sort work list and count amount of work
-/**/            N = 0;
+            //sort work list and count amount of work
+            N = 0;
                 //int carry = 0;
-/**/            for (int j=0; j < Nv; j++){
+            for (int j=0; j < Nv; j++){
                     if (work[j] != -1) {
                         if (j != N){
                             work[N] = work[j];
@@ -173,17 +173,7 @@ void GraphColoringGPU(const char filename[], int** color){
                         }
                         N++;
                     }
-/**/                //if (work[j] == -1){
-/**/                //    for(int jj=j; jj < V; jj++){
-/**/                //        if (work[jj]!=-1){
-/**/                //            work[jj-1] = work[jj];
-/**/                //            work[jj] = -1;
-/**/                //        }
-/**/                //    }
-/**/                //}
-/**/                ////cannot put `else`, as if work[j] == -1, the array will be different at this point
-/**/                //if (work[j] != -1) N++;
-/**/            }
+            }
             D++;
             printf("====while loop %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
     
@@ -273,8 +263,8 @@ void GraphColoringGPU(const char filename[], int** color){
     /*debug*/// }
 
             if (N != 1) {
-                nthreads = min(512, N);
-                nblocks = ceil(float(N)/nthreads);
+                nthreads = min(512, Nverticies);
+                nblocks = ceil(float(Nverticies)/nthreads);
     /*debug info*/printf("  CHECK launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
                 KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, work, work, V_start);
                 //sync CUDA and CPU
