@@ -1,11 +1,4 @@
 //graph coloring
-
-//CUDA accelerator approach
-
-//color management is happeing on CPU, while for loops are parralellized on GPU
-
-//KernelNeighbourColor(graph_line, colors, output, Vsize);
-//Kernel
 #include <stdio.h>
 #include <stdlib.h>
 #include <set>
@@ -18,8 +11,9 @@
 
 //#define PRINTALL
 //#define PRINT_DEBUG
+#define PRINT_LOOP
 
-//file parsers from example
+//file parsers from the example
 int ReadColFile(const char filename[], bool** graph, int* V);
 int ReadMMFile(const char filename[], bool** graph, int* V);
 
@@ -29,11 +23,7 @@ int ReadMMFile(const char filename[], bool** graph, int* V);
 __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int V, int* work){
     int work_index = floorf((blockIdx.x * blockDim.x + threadIdx.x)/V); //primary vertex selector from work list
     int near  = (blockIdx.x * blockDim.x + threadIdx.x) % V;           //neighbor vertex index         (col of graph)
-    //int near_real = near + work_offset;
     int index = work[work_index];            //primary vertex index;
-    //int index_real = index + work_offset;
-
-    //stage 1. scan neighbour
 
     //find color for neighbour
     int color_near_r = 0;
@@ -41,7 +31,7 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
         color_near_r = colors[near];
     }
 
-    //stage 2. mark used colors
+    //mark used color
     if (color_near_r != 0){
         output[index * V + color_near_r] = true;
     }
@@ -49,10 +39,18 @@ __global__ void KernelNeighbourColor(bool* graph, int* colors, bool* output, int
 
 //run search per each vertex
 __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, int* work, int work_offset){
-    int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index
+
+    //work index
+    int work_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (work_index < N){
-        int index = work[work_index];  //vertex index
+
+        //local vertex index for the given part of graph
+        int index = work[work_index];
+        
+        //real vertex index in colors
         int index_real = index + work_offset;
+
+        //scan near_colors for the first unoccupied color
         for (int clr = 1; clr < V; clr ++){
             if (!nearcolors[index * V + clr]){
                 colors[index_real] = clr;
@@ -64,19 +62,34 @@ __global__ void KernelSearchColor(int* colors, bool* nearcolors, int V, int N, i
 
 //run check per each vertex
 __global__ void KernelCheckColor(bool* graph, int* colors, int V, int* work, int* new_work, int work_offset){
-    int work_index = blockIdx.x * blockDim.x + threadIdx.x; //work index           //neighbor vertex index         (col of graph)
-    int index = work[work_index];            //primary vertex index;
+    
+    //work index
+    int work_index = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    //local vertex index for the given part of graph
+    int index = work[work_index];
+    
+    //vertex index in colors
     int index_real = index + work_offset;
-    int new_work_id = -1; //default value
+    
+    //default value (-1 = no work)
+    int new_work_id = -1;
+
+    //scan if selected vertex has neighbours with the same color
     for (int i = index_real + 1; i < V; i++) {
+
+        //only consider neighbors with higher index
         if (graph[index * V + i] and colors[i]==colors[index_real]) {
             new_work_id = index;
             break;
         }
     }
+
+    //update work
     new_work[work_index] = new_work_id;
 }
 
+//clean boolean array with given size
 __global__ void KernelBoolClear(bool* array, int size){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < size){
@@ -109,7 +122,7 @@ void GraphColoringGPU(const char filename[], int** color){
         return;
     }
 
-    //read available memory
+    //read and report available memory
     size_t free, total;
     cudaMemGetInfo(&free,&total); 
     printf("\nGPU: %d KB free of total %d KB\n",free/1024,total/1024);
@@ -119,9 +132,8 @@ void GraphColoringGPU(const char filename[], int** color){
     //find memory devision
     // number of verticies per one full-memory alocation
     int Nverticies = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4))));
-    int Nparts = ceil(V/Nverticies);
     
-    //list of colors for GPU
+    //allocate list of colors for GPU
     cudaError malloc_err = cudaMallocManaged(color, V * sizeof(int));
         if (malloc_err != cudaSuccess){
             std::cout << "COLOR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
@@ -131,7 +143,7 @@ void GraphColoringGPU(const char filename[], int** color){
         (*color)[i] = 0;
     }
 
-    //work for GPU (indicies of verticies to process)
+    //allocate work list for GPU (indicies of verticies to process)
     int* work;
     bool* near_colors;
     malloc_err = cudaMallocManaged(&work, Nverticies * sizeof(int));
@@ -140,14 +152,14 @@ void GraphColoringGPU(const char filename[], int** color){
             exit(malloc_err);
         }
 
-    //part of graph for GPU
+    //allocate part of graph for GPU
     malloc_err = cudaMalloc(&graph_d, V * Nverticies * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         }
 
-    //array for saving neigbour color between kernels
+    //allocate array for saving neigbour color between kernels
     malloc_err = cudaMallocManaged(&near_colors, V * Nverticies * sizeof(bool));
         if (malloc_err != cudaSuccess){
             std::cout << "NEAR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
@@ -156,7 +168,7 @@ void GraphColoringGPU(const char filename[], int** color){
 
 ////////////////////////////////////ALGORITHM
 
-    //go from last part to first
+    //go from last part of graph to first (higher indicies -> lower indicies)
     for (int V_start_r = V - Nverticies; V_start_r > -Nverticies; V_start_r -= Nverticies){
 
         //start should not be below 0
@@ -165,21 +177,24 @@ void GraphColoringGPU(const char filename[], int** color){
         //actual amount of verticies that awailable for proccessing
         int Nv = min(Nverticies - V_start + V_start_r, V - V_start);
 
-        //fill work
+        //fill worklist
         for (int i = 0; i < Nv; i++){
             work[i] = i;
         }
         bool done = false;
 
-        //move part of graph to device memory
+        //move part of the graph to device memory
         cudaMemcpy(graph_d, graph_h + V_start * V, V * Nv * sizeof(bool), cudaMemcpyHostToDevice);
     
         #ifdef PRINT_LOOP
+            //count how many loops passed
             int D = 0;
         #endif
         
-        //repeat until find solition
+        //amount of work per iteration
         int N;
+
+        //repeat until find solition for the given part
         while (!done){
 
             //sort work list and count amount of work
@@ -196,17 +211,20 @@ void GraphColoringGPU(const char filename[], int** color){
             }
 
             #ifdef PRINT_LOOP
+                //visual feedback
                 D++;
                 printf("====while loop, %d verticies need processing; part from V %d with %d verticies; iteration:%d\n", N, V_start, Nv,D);
-            #ifdef PRINT_DEBUG
+            #endif
             
+            //if no work should be done, exit loop. Properly, (bool)done should have done that, but just in case...
             if (N == 0) break;
 
-            //clear / initialize near_color array
+            //clear OR initialize near_color array
             int nthreads = min(512, V*Nverticies);
             int nblocks = ceil(V * Nverticies / nthreads);
             KernelBoolClear<<<nthreads, nblocks>>>(near_colors, Nverticies);
 
+            //scan color of neighbours
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
             #ifdef PRINT_DEBUG
@@ -214,7 +232,7 @@ void GraphColoringGPU(const char filename[], int** color){
             #endif
             KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, work);      
     
-            //find colors
+            //find available colors
             if (N != 1) {
                 nthreads = min(512, N);
                 nblocks = ceil(float(N)/nthreads);
