@@ -173,6 +173,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
             int nthreads = min(512, V*N);
             int nblocks = ceil(float(V*N)/nthreads);
+        printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
             KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
             //sync CUDA and CPU
             //cudaError synced = cudaDeviceSynchronize();
@@ -191,7 +192,7 @@ void GraphColoringGPU(const char filename[], int** color){
             //find colors
             nthreads = min(512, N);
             nblocks = ceil(float(N)/nthreads);
-        printf("launching %d threads and %d blocks for %d jobs\n", nthreads, nblocks, N);
+        printf("  SEARCH launching %d threads and %d blocks for %d items\n", nthreads, nblocks, N);
             KernelSearchColor<<<nblocks, nthreads>>>(*color, near_colors, V, N, job);
             //sync CUDA and CPU
             cudaError synced = cudaDeviceSynchronize();
@@ -218,6 +219,7 @@ void GraphColoringGPU(const char filename[], int** color){
     
             nthreads = min(512, V*N);
             nblocks = ceil(float(V*N)/nthreads);
+        printf("  NEIGHBOR launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
             KernelNeighbourColor<<<nblocks, nthreads>>>(graph_d, *color, near_colors, V, job);
             //sync CUDA and CPU
             //synced = cudaDeviceSynchronize();
@@ -243,6 +245,7 @@ void GraphColoringGPU(const char filename[], int** color){
             //nthreads = min(512, V*N);
             //nblocks = ceil(float(V*N)/nthreads);
             //KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, new_job);
+        printf("  CHECK launching %d threads and %d blocks for %d pairs\n", nthreads, nblocks, V*N);
             KernelCheckColor<<<nblocks, nthreads>>>(graph_d, *color, V, job, job);
             //sync CUDA and CPU
             synced = cudaDeviceSynchronize();
@@ -282,6 +285,7 @@ void GraphColoringGPU(const char filename[], int** color){
 
 //analyze result
 /////////////////////////////////////////////////
+    printf("CUDA part ended, calculating number of colors\n");
 
     //color counter
     int num_colors = 0;
