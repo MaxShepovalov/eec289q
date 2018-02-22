@@ -114,10 +114,11 @@ void GraphColoringGPU(const char filename[], int** color){
         ReadColFile(filename, &graph_h, &V);
     else if (std::string(filename).find(".mm") != std::string::npos) 
         ReadMMFile(filename, &graph_h, &V);
-    else
+    else {
         //exit now, if cannot parse the file
         std::cout << "Cannot parse the file\n";
         return;
+    }
 
     //allocate list of colors per vector
     cudaError malloc_err = cudaMallocManaged(color, V * sizeof(int));
