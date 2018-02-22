@@ -360,6 +360,7 @@ int ReadMMFile(const char filename[], bool** graph, int* V)
       (*graph)[(node2 - 1) * num_rows + (node1 - 1)] = true;
    }
    infile.close();
+   return 0;
 }
 
 
@@ -399,4 +400,5 @@ int ReadColFile(const char filename[], bool** graph, int* V)
       (*graph)[(node2 - 1) * num_rows + (node1 - 1)] = true;
    }
    infile.close();
+   return 0;
 }
