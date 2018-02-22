@@ -83,7 +83,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //allocate list of colors per vector
     cudaError malloc_err = cudaMallocManaged(color, V * sizeof(int));
         if (malloc_err != cudaSuccess){
-            std::cout << "COLOR_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+            std::cout << "COLOR_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         } else {
             std::cout << "COLOR_MALLOC OK\n";
@@ -95,7 +95,7 @@ void GraphColoringGPU(const char filename[], int** color){
     //move graph to device memory
     malloc_err = cudaMalloc(&graph_d, V * V * sizeof(bool));
         if (malloc_err != cudaSuccess){
-            std::cout << "GRAPH_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+            std::cout << "GRAPH_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         } else {
             std::cout << "GRAPH_MALLOC OK\n";
@@ -106,7 +106,7 @@ void GraphColoringGPU(const char filename[], int** color){
     int* job;
     malloc_err = cudaMallocManaged(&job, V * sizeof(int));
         if (malloc_err != cudaSuccess){
-            std::cout << "JOB_MALLOC cuda sync ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+            std::cout << "JOB_MALLOC cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
             exit(malloc_err);
         } else {
             std::cout << "JOB_MALLOC OK\n";
@@ -146,7 +146,12 @@ void GraphColoringGPU(const char filename[], int** color){
         //check colors nearby " << N << " vertexes
 
         bool* near_colors;
-        cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+        cudaError malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+            if (malloc_err != cudaSuccess){
+                std::cout << "NEAR_COLORS_1 cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+                exit(malloc_err);
+            }
+
         for (int i=0; i < V*N; i++)
             near_colors[i] = false;
 
@@ -178,6 +183,7 @@ void GraphColoringGPU(const char filename[], int** color){
             std::cout << "FIND_COLOR cuda sync ERROR happened: " << cudaGetErrorName(synced) << std::endl;
             exit(synced);
         }
+
         cudaFree(near_colors);
 
 /*debug*/// for (int c=0; c<V; c++){
@@ -185,7 +191,12 @@ void GraphColoringGPU(const char filename[], int** color){
 /*debug*/// }
         
         //check if need to work again (update `near_colors`)
-        cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+        malloc_err = cudaMallocManaged(&near_colors, V * N * sizeof(bool));
+            if (malloc_err != cudaSuccess){
+                std::cout << "NEAR_COLORS_2 cuda malloc ERROR happened: " << cudaGetErrorName(malloc_err) << std::endl;
+                exit(malloc_err);
+            }
+
         for (int i=0; i < V*N; i++)
             near_colors[i] = false;
 
