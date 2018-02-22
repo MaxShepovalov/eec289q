@@ -99,7 +99,8 @@ void GraphColoringGPU(const char filename[], int** color){
     }
 
     //find memory devision
-    int Nvertexes = min(V, int(floor((free - 4 * V)/(2*V + 4)))); // number of vertexes per one full-memory alocation
+    //                                      VV leave 20MB free
+    int Nvertexes = min(V, int(floor((free -20*1024*1024 - 4 * V)/(2*V + 4)))); // number of vertexes per one full-memory alocation
 
     //job for GPU (indexes of vertexes to process)
     int* job;
