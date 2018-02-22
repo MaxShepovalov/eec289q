@@ -252,7 +252,7 @@ void GraphColoringGPU(const char filename[], int** color){
                 break;
             }
         }
-/*debug*/D++
+/*debug*/D++;
         if (D==4) break;
     }
     cudaFree(job);
